@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.DS_Store
+
+# A run's working files — downloaded originals, processed fragments, fonts and the
+# generated fontconfig. Build pieces in an output directory of your own; these are
+# here so nothing lands in the package by accident.
+_workspace/
+sources/
+fragments/
+collage-fonts/
+fontconfig/

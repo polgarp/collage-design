@@ -1,0 +1,29 @@
+[
+  {"query": "I want cover art for a playlist called Concrete Dreams, brutalist and mid-century, a bit unsettling. roughly square", "should_trigger": true},
+  {"query": "can you build me a photomontage about deep-sea exploration — old scientific engravings colliding with sonar and cold water, portrait for my wall", "should_trigger": true},
+  {"query": "cut up these vintage botanical plates and layer them into one torn-paper piece with a bit of ransom-note text over the top", "should_trigger": true},
+  {"query": "I need a mixed-media piece for a zine cover — 60s advertising, halftone faces, cut and pasted, dense and a little grotesque", "should_trigger": true},
+  {"query": "put together an image made of lots of overlapping cutout photos of 1970s office workers, all washed into one duotone so it feels like a single artifact", "should_trigger": true},
+  {"query": "make a gig poster where a saint's engraving is torn open and a satellite photo bleeds through underneath", "should_trigger": true},
+  {"query": "assemble a surreal Dada-style cutout composition — a Victorian portrait with a machine part where the head should be, on aged paper", "should_trigger": true},
+  {"query": "hey can you make me an album cover that layers found archival photos into a grainy black and white montage, sort of agitprop photomontage energy but original", "should_trigger": true},
+  {"query": "I want a wall print that combines old anatomical drawings with brutalist architecture, cut and stacked so it reads as one thing", "should_trigger": true},
+
+  {"query": "need album art for my band, we're called Wet Cement. torn paper vibes, old photos layered up, kind of grimy. square for spotify", "should_trigger": true},
+  {"query": "hey so its my parents 40th anniversary in march and i wanted to make them something to frame. i was gonna use our own scanned photos but theyre all like 800px and look rough — could we do it with old public domain stuff instead? 1950s holiday brochures, botanical prints, that sort of thing, cut up and layered into one piece. portrait, big enough to print at A2", "should_trigger": true},
+  {"query": "photomontage — brutalist housing blocks + anatomical diagrams. a3 portrait. dense, not precious. go", "should_trigger": true},
+
+  {"query": "design me an abstract geometric poster about entropy using bold color blocks and sculptural typography — all generated, no photos", "should_trigger": false},
+  {"query": "can you remove the white background from this product photo of my ceramic mug and give me a clean transparent PNG", "should_trigger": false},
+  {"query": "build me a moodboard of interior design references — just arrange a grid of inspiration images so I can show my client the direction", "should_trigger": false},
+  {"query": "make a chart that visualizes our Q3 churn by cohort, and a couple of stat tiles for the dashboard", "should_trigger": false},
+  {"query": "generate a flow-field particle artwork in p5.js with seeded randomness that I can tweak the parameters on", "should_trigger": false},
+  {"query": "retouch this wedding photo — smooth the skin a little, boost the sky, crop to 4x5 for instagram", "should_trigger": false},
+  {"query": "design a minimalist logo and wordmark for a coffee roaster called Meridian, vector, works in one color", "should_trigger": false},
+  {"query": "stitch these 5 vacation photos into a single panorama and color-correct them so the horizon lines up", "should_trigger": false},
+  {"query": "turn my slide deck's bullet points into a nicer layout with some icons and a consistent grid", "should_trigger": false},
+
+  {"query": "im building a photo collage feature in my react app — user picks 4-9 images and it lays them out in a grid with rounded corners and a gap. whats a good layout algorithm for handling different aspect ratios", "should_trigger": false},
+  {"query": "doing an actual physical collage for my evening art class and the magazine paper keeps wrinkling when i glue it down, whats the best adhesive and should i seal it after", "should_trigger": false},
+  {"query": "need a one-pager for a pitch deck — like 5 product shots overlapping each other at angles with some copy over the top, quite editorial looking. can you spec out the layout for figma", "should_trigger": false}
+]
