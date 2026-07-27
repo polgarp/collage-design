@@ -191,17 +191,21 @@ a movement someone else could adopt for a different subject entirely. Output it 
 Five ways a philosophy fails, in the order they're worth checking. These are *tests* — answer each
 against what you actually wrote, not against what you meant:
 
-1. **Too thin to execute.** The commonest failure. For each of the six dimensions: could someone
-   who has never seen the brief act on it without asking a question? A dimension that is a phrase
-   rather than an argument gets improvised later, and improvisation is where drift enters.
+1. **Decides nothing.** The commonest failure, and thickness disguises it — a paragraph can be
+   rich, well-written and still rule nothing out. So for each of the six dimensions, name what it
+   **rules out**: the move a later movement is now forbidden to make. A dimension that forbids
+   nothing has not decided anything, and gets improvised at execution time — which is where drift
+   enters. This is the whole load-bearing job of the document: the skill stays broad on purpose,
+   and the philosophy is where a piece gets its constraints.
 2. **Drifted into a diagram.** Nothing overlaps, occludes or tears, and no sentence says that was
    intended. Commit to the default register or name the override.
 3. **Never settles the reconciling move.** Point at the sentence. If you can't, it isn't there.
 4. **Talks about text like a writer.** If the philosophy implies explanation, it will get
    paragraphs. Check the opposite too: a philosophy that has banned type outright has over-read
    the warning — poster furniture is not prose, and a hedge here becomes a ban downstream.
-5. **A template in disguise.** Positions, fragment counts, a layout in prose — that leaves
-   execution nothing to interpret.
+5. **A template in disguise.** Positions, a fragment-by-fragment layout in prose, an arrangement
+   described rather than a register decided — that leaves execution nothing to interpret. A
+   *count* and a scale ratio are not this: they bound the composition without drawing it.
 
 ---
 
@@ -388,7 +392,10 @@ sentence. Then act on the result; none of this goes to the user.
    said what it is doing.*
 
 A default that fails with no override means the piece **drifted** — it isn't finished. Fix it and
-re-render. A reason constructed after the fact is not an override; it is the drift talking.
+re-render. A reason constructed after the fact is not an override; it is the drift talking. The
+exception is a philosophy constraint the material has actually disproved: amend it in
+`philosophy.md`, with the reason, and re-check against the amended text. Writing it down is what
+separates an amendment from an excuse — it is what made the constraint binding to begin with.
 
 Iterate here until it passes. Ship the piece, not the checklist.
 
