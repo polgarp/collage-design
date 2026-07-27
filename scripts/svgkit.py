@@ -24,7 +24,8 @@ shadows, live <text>), so the shipped .svg matches its .png in any engine — ke
 Then, per doctrine: vectorize downloaded-font text (scripts/vectorize_text.sh) and verify the
 shipped .svg == .png (scripts/check_render.sh) before shipping.
 """
-import base64, io, os, subprocess
+import base64, io, os, subprocess, sys
+from contextlib import contextmanager
 from PIL import Image
 
 def _esc(s):
@@ -48,8 +49,15 @@ class Canvas:
         Pass `max_width` = the width you will place it at: embedding a fragment larger than
         it is drawn buys nothing visible and costs real megabytes. Oversized base64 is a hard
         failure, not just bloat — past libxml2's attribute limits `rsvg-convert` aborts with
-        `Premature end of data in tag defs` on XML that is perfectly valid. Raise `colors`
-        (or set it to 0) if palette banding shows on a large gradient fragment."""
+        `Premature end of data in tag defs` on XML that is perfectly valid.
+
+        `colors` is the OTHER size lever, and for treated fragments it is the main one. Most
+        reconciling treatments — grain, halftone, duotone-plus-noise — write per-pixel noise,
+        which is incompressible: a fragment that is *visually* six flat inks can embed as
+        several MB of PNG. Turning `colors` DOWN is near-lossless there, because the press
+        output genuinely has few colours (measured: `colors=32` took one piece from 14 MB to
+        6.7 MB with no visible change). Turn it up, or set it to 0, only when palette banding
+        shows on a large smooth-gradient fragment — the opposite case."""
         if path in self._embedded:
             return self._embedded[path]
         im = Image.open(path)
@@ -67,6 +75,14 @@ class Canvas:
         else:
             im.convert("RGB").save(buf, "JPEG", quality=jpeg_quality); mime = "image/jpeg"
         uri = f"data:{mime};base64,{base64.b64encode(buf.getvalue()).decode()}"
+        mb = len(uri) / 1e6
+        if mb > 1.5:                     # say it here rather than at the render that fails
+            lever = (f"lower `colors` (currently {colors}) — a treated fragment carries "
+                     f"per-pixel grain, which is incompressible" if alpha else
+                     f"lower `jpeg_quality` (currently {jpeg_quality})")
+            print(f"svgkit: {os.path.basename(path)} embeds at {mb:.1f} MB at {im.width}px. "
+                  f"If that is wider than it is drawn, pass a smaller max_width; otherwise "
+                  f"{lever}.", file=sys.stderr)
         iid = self._id("img")
         self._defs.append(
             f'<image id="{iid}" width="{im.width}" height="{im.height}" xlink:href="{uri}"/>')
@@ -113,6 +129,48 @@ class Canvas:
         if opacity != 1.0: a += f' opacity="{opacity:.3f}"'
         if rotate:  a += f' transform="rotate({rotate} {x} {y})"'
         self._body.append(f'<text {a}>{_esc(s)}</text>')
+
+    @contextmanager
+    def clip_to(self, path, x, y, w=None, h=None, max_width=None):
+        """Confine everything placed inside the block to a cut silhouette.
+
+            with c.clip_to("fragments/head.png", x=300, y=400, w=1800):
+                for frag in crowd:           # each one clipped to the head's outline
+                    c.place(frag, ...)
+
+        The container-shape register — a figure whose interior is made of other pictures.
+        It wants MANY small fragments rather than a few large ones, which is the point: the
+        silhouette does the composing, so the pieces inside it can be small and numerous.
+
+        Uses <mask>, not <clipPath>: a clip path takes geometry, and what we have here is a
+        raster alpha. The mask carries the silhouette's alpha as luminance, which both
+        inkscape and rsvg resolve the same way — verified with check_render.sh, and it is
+        not a filter primitive, so the filter-free rule is untouched.
+
+        Place the silhouette itself too if you want its own edge visible; this only clips."""
+        im = Image.open(path)
+        a = im.split()[-1] if im.mode in ("RGBA", "LA") else im.convert("L")
+        iw, ih = im.size
+        if w is None and h is None: w = iw
+        if w is None: w = iw * (h / ih)
+        if h is None: h = ih * (w / iw)
+        mw = int(max_width or w)
+        if a.width > mw:
+            a = a.resize((mw, max(1, round(a.height * mw / a.width))), Image.LANCZOS)
+        buf = io.BytesIO()
+        a.convert("L").save(buf, "PNG", optimize=True)
+        uri = f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode()}"
+        mid = self._id("mk")
+        self._defs.append(
+            f'<mask id="{mid}" maskUnits="userSpaceOnUse" x="0" y="0" '
+            f'width="{self.w}" height="{self.h}">'
+            f'<image x="{x:.2f}" y="{y:.2f}" width="{w:.2f}" height="{h:.2f}" '
+            f'preserveAspectRatio="none" xlink:href="{uri}"/></mask>')
+        self._body.append(f'<g mask="url(#{mid})">')
+        try:
+            yield (x, y, w, h)
+        finally:
+            self._body.append('</g>')
 
     def raw(self, svg):
         """Escape hatch: append any custom SVG. Keep it filter-free for portability."""

@@ -37,22 +37,27 @@ git clone https://github.com/polgarp/collage-design.git ~/.claude/skills/collage
 | `<piece>.svg` / `.png` | Self-contained and filter-free / the shipping render |
 | `build_*.py` | Parametric build script, so the piece can be edited rather than remade |
 
-Two things are verified rather than assumed: `check_render.sh` proves the `.svg` and `.png` are the
-same picture in any renderer, and an internal self-check on the render — occlusion, frame-breaking
-cutout, treatment coverage, density — drives iteration before anything is called done.
+Three things are measured rather than assumed: `check_render.sh` proves the `.svg` and `.png` are
+the same picture in any renderer, `survey.py` scores each source for whether a subject can actually
+be cut out of it, and an internal self-check on the render — occlusion, frame-breaking cutout,
+treatment coverage, fragment count and scale spread — drives iteration before anything is called
+done.
 
 ## Extending it
 
 `cut.py` ships seven edge styles and `treat.py` five treatments, but both are built around one
-extension point, a drop-in file, or importing the plumbing:
+extension point, a drop-in file, or importing the plumbing — and both pass custom parameters
+through, so an invented style is a first-class citizen rather than a squatter on `--radius`:
 
 ```bash
-cut.py   --style-file my_edge.py  in.jpg out.png   # def mask(w, h, p, rng) -> L mask
-treat.py --style-file my_treat.py in.png out.png   # def treat(rgb, p, rng) -> rgb
+cut.py   --style-file my_edge.py  --param fade=0.45 in.jpg out.png   # def mask(w, h, p, rng)
+treat.py --style-file my_treat.py --param warmth=0.6 in.png out.png  # def treat(rgb, p, rng)
+cut.py   --sticker 16 treated.png sticker.png     # die-cut keyline following the silhouette
 ```
 
 `svgkit.py` ships no layout presets at all, composition has to be invented per piece, so the
-library only handles embed-once, placement, renderer-safe shadows, and text.
+library only handles embed-once, placement, renderer-safe shadows, text, and clipping a group of
+fragments into a container silhouette.
 
 ## Licensing
 

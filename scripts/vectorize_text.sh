@@ -29,9 +29,23 @@ done <<EOF
 $(grep -o 'font-family="[^"]*"' "$in" | sed 's/font-family="//;s/"$//' | sort -u)
 EOF
 
+# Convert ONLY the text. `select-all:all;object-to-path` also *unlinks clones*, which expands
+# every <use> back into a duplicated <image> — undoing svgkit's embed-once economy and roughly
+# doubling the shipped file (measured: 296 KB -> 885 KB on a two-placement fixture). Past
+# libxml2's attribute limits that doubling is what makes rsvg abort with `Premature end of data`.
+# select-by-element needs Inkscape >= 1.2; older builds fall back below.
 FONTCONFIG_FILE="$conf" inkscape "$in" \
-  --actions="select-all:all;object-to-path" \
-  --export-plain-svg --export-filename="$out"
+  --actions="select-by-element:text;object-to-path" \
+  --export-plain-svg --export-filename="$out" || true
+
+if [ ! -s "$out" ] || [ "$(grep -c '<text' "$out" || true)" -gt 0 ]; then
+  echo "vectorize_text.sh: text-scoped conversion did not take — retrying whole-document." >&2
+  echo "  (Inkscape < 1.2 has no select-by-element. This unlinks <use> clones, so every" >&2
+  echo "   embedded payload is duplicated and the file roughly doubles.)" >&2
+  FONTCONFIG_FILE="$conf" inkscape "$in" \
+    --actions="select-all:all;object-to-path" \
+    --export-plain-svg --export-filename="$out"
+fi
 
 # Inkscape exits 0 even when it converted nothing — usually because the font could not be
 # resolved, so there were no glyph outlines to make. Live <text> left in the shipped file is
@@ -45,4 +59,10 @@ if [ "$left" -gt 0 ]; then
   exit 1
 fi
 
-echo "vectorized text: $in -> $out" >&2
+# Report the embed economy so a duplication is visible rather than inferred: <use> count should
+# survive unchanged, and the file should not grow by more than the glyph outlines.
+count() { grep -o "$1" "$2" | wc -l | tr -d ' '; }
+printf 'vectorized text: %s -> %s\n  in:  %s bytes, %s <use>, %s <image>\n  out: %s bytes, %s <use>, %s <image>\n' \
+  "$in" "$out" \
+  "$(wc -c <"$in" | tr -d ' ')"  "$(count '<use' "$in")"  "$(count '<image' "$in")" \
+  "$(wc -c <"$out" | tr -d ' ')" "$(count '<use' "$out")" "$(count '<image' "$out")" >&2

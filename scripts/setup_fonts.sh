@@ -6,6 +6,10 @@
 set -euo pipefail
 
 fonts_dir="${1:?usage: setup_fonts.sh <fonts-dir>}"
+# Create it if it isn't there: a piece set entirely in SYSTEM faces still needs the generated
+# conf, because a stock fontconfig can resolve an installed family to something else entirely.
+# "I downloaded no fonts, run this anyway" is the normal path, not an error.
+mkdir -p "$fonts_dir"
 fonts_dir="$(cd "$fonts_dir" && pwd)"          # absolute
 base="$(dirname "$fonts_dir")/fontconfig"
 cache="$base/cache"

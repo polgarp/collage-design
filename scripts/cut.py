@@ -27,6 +27,14 @@ Shared options:
   --seed INT     seed for organic styles (default 0) — keep builds reproducible
   --from-alpha   operate on the input's EXISTING alpha silhouette (roughen a
                  knockout) instead of cutting the whole rectangle
+  --param K=V    repeatable; arrives as p.params["K"] in a --style-file. This is how a
+                 custom edge takes its OWN parameters instead of squatting on whichever
+                 built-in flag it can spare.
+  --sticker PX   after the cut, lay a keyline PX wide following the silhouette — the
+                 die-cut sticker. Run it AFTER the treatment (a varnished keyline stops
+                 reading as the paper the shape was cut from), which means a second
+                 pass: no --style needed, it works on the existing alpha.
+                 --sticker-color HEX (default white)
 
 Determinism: same input + same flags → same output. Record the exact command in
 your build script so the fragment can be regenerated.
@@ -36,7 +44,8 @@ pattern: a function (w, h, params, rng) returning an L-mode mask (255 = keep). W
 philosophy wants an edge these don't cover, make your own and reuse the plumbing (loading,
 feather, from-alpha, save) rather than rebuilding it:
   • drop-in file — write my_edge.py with `def mask(w, h, p, rng): ... return L_image`, then
-        cut.py --style-file my_edge.py in.png out.png
+        cut.py --style-file my_edge.py --param fade=0.3 --param fill=0.98 in.png out.png
+    and read them inside as p.params["fade"]. Values that look numeric arrive as floats.
   • or import — `from cut import load, compose` (+ helpers `_profile`, `_organic_mask`,
     `_roughen_alpha`, `_band`, `_perimeter`), build any mask, and `compose(img, mask).save(out)`.
 
@@ -286,6 +295,60 @@ def compose(img, mask, feather=1.5, from_alpha=False):
     out = img.copy(); out.putalpha(mask)
     return out
 
+def parse_params(pairs):
+    """KEY=VALUE pairs for a --style-file, coerced to float where they look numeric.
+
+    Without this a custom style can only receive the BUILT-IN numeric flags, so it ends up
+    repurposing --radius as one thing and --period as another — undiscoverable, and it
+    collides the moment the style also wants the preset meaning."""
+    out = {}
+    for kv in pairs or []:
+        if "=" not in kv:
+            sys.exit(f"--param takes KEY=VALUE, got '{kv}'")
+        k, v = kv.split("=", 1)
+        try:
+            out[k.strip()] = float(v)
+        except ValueError:
+            out[k.strip()] = v
+    return out
+
+def _dilate(m, r):
+    """Grow a boolean mask by r px. Alternating 4- and 8-connected steps give an octagon,
+    which is near enough to the disk a die-cutter would follow and far cheaper than a
+    rank filter at this radius."""
+    for i in range(int(r)):
+        d = m.copy()
+        d[1:, :] |= m[:-1, :]; d[:-1, :] |= m[1:, :]
+        d[:, 1:] |= m[:, :-1]; d[:, :-1] |= m[:, 1:]
+        if i % 2:
+            d[1:, 1:] |= m[:-1, :-1]; d[:-1, :-1] |= m[1:, 1:]
+            d[1:, :-1] |= m[:-1, 1:]; d[:-1, 1:] |= m[1:, :-1]
+        m = d
+    return m
+
+def sticker(img, px, color="#ffffff", feather=1.0):
+    """Lay a keyline of `px` following the image's own alpha silhouette — the die-cut
+    sticker, where the backing paper is cut a few millimetres outside the artwork.
+
+    The canvas grows by `px` first: the keyline lives OUTSIDE the existing silhouette, so
+    without the margin it is simply clipped away at the bounding box. Returns a new RGBA
+    image, so it composes as a post-process — which is what it has to be, since it belongs
+    after the reconciling treatment rather than before it."""
+    px = max(1, int(round(px)))
+    pad = px + 2
+    w, h = img.size
+    big = Image.new("RGBA", (w + 2 * pad, h + 2 * pad), (0, 0, 0, 0))
+    big.paste(img, (pad, pad))
+    a = np.asarray(big.split()[3]) > 128
+    grown = Image.fromarray((_dilate(a, px) * 255).astype("uint8"), "L")
+    if feather:
+        grown = grown.filter(ImageFilter.GaussianBlur(feather))
+    c = color.lstrip("#")
+    rgb = tuple(int(c[i:i + 2], 16) for i in (0, 2, 4))
+    key = Image.new("RGBA", big.size, rgb + (0,))
+    key.putalpha(grown)
+    return Image.alpha_composite(key, big)
+
 def _resolve_builder(args):
     """A style is just a function (w, h, params, rng) -> L mask. Presets live in STYLES;
     --style-file loads a user .py defining `mask(w, h, p, rng)`, so a new edge needs no
@@ -306,7 +369,10 @@ def build(args):
             for n, (f, _, h) in STYLES.items():
                 if f == fam: print(f"  {n:<{w}}  {h}")
         return 0
-    if not args.style_file and (not args.style or args.style not in STYLES):
+    cutting = bool(args.style_file or args.style)
+    if cutting and not args.style_file and args.style not in STYLES:
+        sys.exit(f"--style must be one of: {', '.join(STYLES)} (or --style-file FILE, or --list)")
+    if not cutting and not args.sticker:
         sys.exit(f"--style must be one of: {', '.join(STYLES)} (or --style-file FILE, or --list)")
     if not (args.input and args.output):
         sys.exit("need IN and OUT paths")
@@ -317,26 +383,36 @@ def build(args):
         args.inset = int(0.04 * min(w, h))
     args.sides = ({"top", "bottom", "left", "right"} if args.sides == "all"
                   else set(s.strip() for s in args.sides.split(",")))
+    args.params = parse_params(args.param)
     rng = np.random.default_rng(args.seed)
-    builder, name = _resolve_builder(args)
 
-    if args.from_alpha and name in ORGANIC:
-        # roughen the subject's real silhouette (contour-following, not a rectangle)
-        mask = _roughen_alpha(img.split()[3], _amp(args, w, h), _ROUGH[name], rng)
-        from_alpha = False
+    if cutting:
+        builder, name = _resolve_builder(args)
+        if args.from_alpha and name in ORGANIC:
+            # roughen the subject's real silhouette (contour-following, not a rectangle)
+            mask = _roughen_alpha(img.split()[3], _amp(args, w, h), _ROUGH[name], rng)
+            from_alpha = False
+        else:
+            mask = builder(w, h, args, rng)
+            from_alpha = args.from_alpha
+        if from_alpha:  # clip to an existing knockout's silhouette
+            mask = Image.fromarray(np.minimum(
+                np.asarray(img.split()[3]), np.asarray(mask)).astype("uint8"), "L")
+        if args.feather:
+            mask = mask.filter(ImageFilter.GaussianBlur(args.feather))
+        if name == "burnt":
+            img = _apply_burn(img, mask, args, rng)
+        img.putalpha(mask)
     else:
-        mask = builder(w, h, args, rng)
-        from_alpha = args.from_alpha
-    if from_alpha:  # clip to an existing knockout's silhouette
-        mask = Image.fromarray(np.minimum(
-            np.asarray(img.split()[3]), np.asarray(mask)).astype("uint8"), "L")
-    if args.feather:
-        mask = mask.filter(ImageFilter.GaussianBlur(args.feather))
-    if name == "burnt":
-        img = _apply_burn(img, mask, args, rng)
-    img.putalpha(mask)
+        name = "keyline"      # sticker-only pass: keep the alpha this fragment arrived with
+
+    if args.sticker:
+        img = sticker(img, args.sticker, args.sticker_color, args.feather)
+        name += "+sticker"
+
     img.save(args.output)
-    print(f"cut '{name}' -> {args.output}  ({w}x{h}, sides={sorted(args.sides)}, seed={args.seed})")
+    print(f"cut '{name}' -> {args.output}  ({img.width}x{img.height}, "
+          f"sides={sorted(args.sides)}, seed={args.seed})")
     return 0
 
 def main():
@@ -346,6 +422,15 @@ def main():
     ap.add_argument("--style-file", dest="style_file", default=None,
                     help="a .py file defining mask(w,h,p,rng)->L mask; invent a new edge "
                          "without editing this tool")
+    ap.add_argument("--param", action="append", default=[], metavar="KEY=VALUE",
+                    help="repeatable; arrives as p.params['KEY'] in a --style-file, so a "
+                         "custom edge can take its own parameters instead of squatting on "
+                         "a built-in flag")
+    ap.add_argument("--sticker", type=float, default=0, metavar="PX",
+                    help="lay a keyline PX wide following the cut silhouette (die-cut "
+                         "sticker). Works with no --style, on the existing alpha, so it can "
+                         "run after the treatment — which is where it belongs")
+    ap.add_argument("--sticker-color", dest="sticker_color", default="#ffffff")
     ap.add_argument("--list", action="store_true")
     ap.add_argument("--sides", default="all")
     ap.add_argument("--inset", type=float, default=None)

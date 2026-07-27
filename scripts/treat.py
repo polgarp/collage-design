@@ -22,6 +22,11 @@ Invent a treatment — don't force a preset. A treatment is a function
   • drop-in:  treat.py --style-file my_treat.py in.png out.png   (file defines treat(rgb, p, rng))
   • import:   from treat import load, save_rgb, lum   (do your own array math)
 
+A custom treatment takes its OWN parameters with --param KEY=VALUE (repeatable), read inside
+as p.params["KEY"] — so it need not squat on --amount or hard-code constants at module level.
+Numeric-looking values arrive as floats. Keep them identical across fragments: they are part
+of the treatment, and the cohesion rule below covers them too.
+
 Cohesion rule: run the SAME style + seed over EVERY fragment, or they won't read as one object.
 """
 import argparse, sys
@@ -86,6 +91,21 @@ def save_rgb(src_img, rgb, out_path):
     img.save(out_path)
     return img
 
+def parse_params(pairs):
+    """KEY=VALUE pairs for a --style-file, coerced to float where they look numeric. Without
+    it a custom treatment can only receive --amount, so it hard-codes its constants and stops
+    being tunable from the build script."""
+    out = {}
+    for kv in pairs or []:
+        if "=" not in kv:
+            sys.exit(f"--param takes KEY=VALUE, got '{kv}'")
+        k, v = kv.split("=", 1)
+        try:
+            out[k.strip()] = float(v)
+        except ValueError:
+            out[k.strip()] = v
+    return out
+
 def _resolve(args):
     if args.style_file:
         import importlib.util
@@ -106,6 +126,7 @@ def build(args):
         sys.exit("need IN and OUT paths")
     img = load(args.input)
     rgb = np.asarray(img)[..., :3].astype(float)
+    args.params = parse_params(args.param)
     rng = np.random.default_rng(args.seed)
     fn, name = _resolve(args)
     save_rgb(img, fn(rgb, args, rng), args.output)
@@ -118,6 +139,9 @@ def main():
     ap.add_argument("--style")
     ap.add_argument("--style-file", dest="style_file", default=None,
                     help="a .py file defining treat(rgb,p,rng)->rgb; invent a treatment without editing this tool")
+    ap.add_argument("--param", action="append", default=[], metavar="KEY=VALUE",
+                    help="repeatable; arrives as p.params['KEY'] in a --style-file, so a "
+                         "custom treatment can take its own parameters")
     ap.add_argument("--list", action="store_true")
     ap.add_argument("--dark"); ap.add_argument("--mid"); ap.add_argument("--light")
     ap.add_argument("--amount", type=float, default=None)

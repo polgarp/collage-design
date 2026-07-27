@@ -25,8 +25,7 @@ Four movements:
   and stop; never substitute generated or invented imagery.
 - **Local tooling:** ImageMagick, Inkscape, librsvg, fontconfig, Python + Pillow + NumPy. Run
   `scripts/check_deps.sh` first; it prints the install line for anything missing.
-- **This is a long, expensive job** — roughly 100–150k tokens for one piece, ending in a 5–10 MB
-  `.svg` and a 10–20 MB `.png`. If the user wants something quick, tell them before Movement 1. A
+- **This is a long job** — if the user wants something quick, tell them before Movement 1. A
   multi-piece **series** costs far less than N× a single piece: sourcing dominates the budget, and
   one source pool feeds every piece in the set.
 
@@ -51,9 +50,9 @@ lost, it drifted.**
   busy sources, take the escape from a fragment bleeding off the **canvas edge** instead.
 - **Edges are visible and physical** — torn fiber, knife-cut bevel, cast shadow; never an
   invisible seam around a rectangle.
-- **Density is a virtue.** Accumulation rewards sustained viewing; restraint is earned through
-  composition, not by leaving the page blank. Open space only where text must be read — never to
-  push image fragments apart.
+- **Density is a virtue** — and it is a matter of *count and scale variance*, not coverage: many
+  fragments, the largest several times the smallest. A dozen mid-sized pieces at even spacing is
+  the drift however much of the page they cover. Open space only where text must be read.
 
 ### OVERRIDING A DEFAULT
 
@@ -66,6 +65,11 @@ aside and what the piece gets for it:
 
 > *"Fragments are NOT tonally unified: each source keeps the colour temperature it arrived with,
 > because the collision between registers is the argument the piece is making."*
+
+**Then say what replaces it.** An override removes a constraint; it has to add one, or the piece
+reads as a mistake rather than a decision — *two treatments that never cross, curved edges for one
+family and straight for the other, a fixed paint order*. What replaces it is a sourcing and
+cutting decision, so it belongs here, before Movement 3 spends anything on material.
 
 Named there, the override governs the rest of the run and the Movement 4 self-check validates
 against it. Unnamed, the default stands.
@@ -99,6 +103,11 @@ brief pulled you — not because it was the nearest thing to reach:
 - **Domain** — documents and specimens are the reflex. Food, textiles, sport, weather, music,
   crowds, machinery in use, bodies in motion, the street are all equally cuttable.
 
+These name the answers that arrive **unbidden**, not banned answers. Sepia, the Western archive,
+the specimen plate are each right sometimes: choose one deliberately, say why, and it is fine.
+Avoiding whatever this list mentions is the same failure as defaulting to it — and worse in one
+way, because an avoidance written into `philosophy.md` binds every movement after it.
+
 Name the movement in 1–2 words once you know where it stands. If the name would sit comfortably
 next to a name you have produced before, you have probably defaulted rather than decided.
 
@@ -115,13 +124,19 @@ redundancy:
 - **Cut & edge language** — how the material is severed from its origin: torn/deckle (paper fiber),
   rough (jagged rip), scissor/knife-clean (crisp straight or diagonal), rounded (snapshot corners),
   scalloped or pinked (decorative vintage-print edges), silhouette knockout (subject lifted from its
-  background), or burnt (scorched, aged). The edge is where collage declares its attitude —
-  mechanical cuts read *deliberate*, torn reads *urgent*, treated reads *decayed* — and a strong
+  background), sticker keyline (die-cut, a band of backing paper following the silhouette), or burnt
+  (scorched, aged). The edge is where collage declares its attitude — mechanical cuts read
+  *deliberate*, torn reads *urgent*, treated reads *decayed* — and a strong
   philosophy **assigns different edge languages to different source families**, so that where a
   fragment came from is legible in how it was cut.
-- **Layering & depth** — how fragments stack. Overlap and occlusion, cast shadow and the physical
-  lift of paper off paper, dense accumulation versus sparse isolated placement. Collage is
-  fundamentally about things *in front of* other things.
+- **Layering & depth** — how fragments stack, and what stacking *means* here. Collage is
+  fundamentally about things *in front of* other things, so say what being in front amounts to:
+  precedence, chronology, suppression, who is burying whom. "Order by occlusion" is a rendering
+  instruction; an order carrying an argument is a decision, and the difference shows. The
+  **container shape** is available too — one large silhouette holding the others, acting as both
+  subject and ground (`svgkit.clip_to`), a register that wants many small fragments rather than a
+  few big ones. Shadows default to paper lifting a millimetre off paper: tight, close, one light.
+  Anything broader is an argument the philosophy has to make.
 - **The reconciling move** — *the decision that most determines whether this works.* Disparate
   sources arrive in clashing colour, light and grain. The default answer is a unifying treatment
   that fuses them — a clamped palette, duotone or tritone wash, desaturation, a shared grain or
@@ -132,14 +147,26 @@ redundancy:
   a set, across every piece in it. (Identically at the *treatment* step. Normalizing each
   fragment's exposure beforehand is prep, and is required — see the recipes.)
 - **Composition, rhythm & negative space** — how fragments are orchestrated across the field, and
-  how emptiness is used as deliberately as image. Settle what the **ground** is while you are here:
-  a photographic ground competes with everything laid over it at any opacity and flattens the
-  piece, so grounds usually want to be flat material — paper, textile, a printed sheet — with
-  photographs entering as fragments on top of it.
+  how emptiness is used as deliberately as image. Decide the **count and the spread of scales**
+  here too: how many fragments, and how large the largest runs against the smallest. Both follow
+  from the subject the way ground and rhythm do, and left undecided they come out as a dozen
+  mid-sized pieces every time. Settle what the **ground** is while you are here: a photographic
+  ground competes with everything laid over it at any opacity, so it works when the piece gives
+  that competition a job — a scene the fragments interrupt, a field they are cut out of.
+  Otherwise flat material — paper, textile, a printed sheet — with photographs entering as
+  fragments on top of it.
 - **Text treatment** — the register follows the movement, so decide it here rather than at the end:
   how type is set, how it is cut, whether it sits on the imagery or under it. Usually sparse and
   serving the image — but a philosophy may put type at the centre and make the imagery serve *it*,
-  if it says so. What's never wanted is prose: paragraphs mean the piece stopped being visual.
+  if it says so. Decide as well about the type that **arrives inside the fragments** — can labels,
+  studio imprints, signage and price tickets bring their own lettering, often louder and better
+  drawn than anything you will set. Does the piece's voice outrank the sources', match them, or
+  hide among them? Not choosing is what leaves a title designed as though the page were empty; the
+  default is **distinct, or largest** — compete or differ, but don't tie. What's never wanted is
+  *explanation*: paragraphs mean the piece stopped being visual. Poster **furniture** is a
+  different thing and usually wanted — dates, venue, a billing block, an edition number, a
+  printer's imprint — small structured text, and often what makes a poster read as a poster rather
+  than an image with a word on it.
 
 **Three things the philosophy has to get right:**
 
@@ -170,7 +197,9 @@ against what you actually wrote, not against what you meant:
 2. **Drifted into a diagram.** Nothing overlaps, occludes or tears, and no sentence says that was
    intended. Commit to the default register or name the override.
 3. **Never settles the reconciling move.** Point at the sentence. If you can't, it isn't there.
-4. **Talks about text like a writer.** If the philosophy implies paragraphs, it will get them.
+4. **Talks about text like a writer.** If the philosophy implies explanation, it will get
+   paragraphs. Check the opposite too: a philosophy that has banned type outright has over-read
+   the warning — poster furniture is not prose, and a hedge here becomes a ban downstream.
 5. **A template in disguise.** Positions, fragment counts, a layout in prose — that leaves
    execution nothing to interpret.
 
@@ -220,6 +249,16 @@ it belongs to, and check whether it publishes openly. A national library, a univ
 collection, a state archive, a museum in the region the work is about, a subject-specific
 repository. Most of what is openly licensed in the world is not on the first list you think of.
 
+**When a collection turns out to be right, pull deep from it — and cut more than one fragment from
+each thing you pull.** Finding the archive is the expensive part, not taking things out of it:
+inside a public-domain collection of a thousand can labels, the fifteenth costs a line in a
+download loop and a row in `attributions.md`, and a representative handful is what leaves a piece
+thin. One plate also yields a different fragment per crop, the same crop recut with a different
+`--seed` is a genuinely different edge, and a cut fragment can be placed more than once at
+different scales — `svgkit` stores each payload once, so repetition is free. The fragment count is
+not the download count. Recutting and repetition are seasoning on a large pool rather than a
+substitute for one: used to disguise a thin pool they only make the thinness rhythmic.
+
 General wells, as a floor rather than a map:
 
 - **Wikimedia Commons** — public-domain and CC imagery, huge archive.
@@ -243,12 +282,18 @@ that 404s to an HTML error page of nonzero size that looks like a successful dow
 working dir, never into `sources/`.
 
 **Prefer *cuttable* subjects.** Extraction here is classical (`scripts/knockout.py`, PIL/numpy),
-so it lifts subjects cleanly only off **flat/neutral grounds** — museum object shots, specimen
-plates, studio portraits, existing PNG cutouts. When a fragment needs to be a silhouette, source
-material like that. A subject on a busy background can't be knocked out cleanly without ML matting
-(`rembg` is an opt-in ~170 MB dependency; install it only if a piece truly demands it), so use such
-photos as torn **rectangles** instead. Choosing what you can actually cut is half of good collage
-sourcing.
+so it lifts a subject cleanly only off a flat ground **the subject contrasts with**. Flatness
+alone is not the predictor: a pale dress on a pale studio sweep is a perfectly flat ground and
+cannot be lifted at any tolerance, because subject and fill sit at the same value. Don't guess at
+it — `scripts/survey.py` measures both and prints a verdict per source, and `knockout.py` says so
+when a matte has eaten the subject. A subject on a busy background can't be knocked out cleanly
+without ML matting (`rembg` is an opt-in ~170 MB dependency; install it only if a piece truly
+demands it), so use such photos as torn **rectangles** instead. Choosing what you can actually cut
+is half of good collage sourcing.
+
+**Then look at what you actually got** — `scripts/survey.py sources/* --sheet contact.png` builds
+a labelled contact sheet alongside the measurements. Composition is decided by the material, and a
+directory listing is not the material.
 
 ### LICENSE COMPATIBILITY — WHAT THE SOURCES DO TO THE FINISHED PIECE
 
@@ -301,23 +346,26 @@ of it.
 
 - **Stage A — cut & unify.** Cut each fragment's edge in the philosophy's edge language with
   **`cut.py`** (clean / rounded / scallop / pinking / torn / rough / burnt, any subset of sides,
-  seeded). Lift the silhouettes chosen at sourcing with **`knockout.py`**, then fray the real
+  seeded; `--sticker` lays a die-cut keyline, and belongs *after* the treatment). Lift the
+  silhouettes chosen at sourcing with **`knockout.py`**, then fray the real
   contour via `cut.py --from-alpha`. Apply the unifying treatment with **`treat.py`** —
   *identically* to every fragment, same style and seed, unless the philosophy overrode
   unification — so clashing sources fuse into one object.
 - **Stage B — assemble (SVG).** Compose with **`svgkit.py`**: `Canvas` with embed-once, `place`
-  with rotate+scale, `contact_shadow`, `text`, a `raw()` escape hatch, `render`. Place fragments
-  per the default register — overlapping, occluding, colliding — or per whatever the philosophy
-  named instead. Order by occlusion, with baked or radial-gradient contact shadows on one
-  consistent light. Pass `embed(..., max_width=)` at the width each fragment is drawn.
+  with rotate+scale, `contact_shadow`, `text`, `clip_to` for a container silhouette, a `raw()`
+  escape hatch, `render`. Place fragments per the default register — overlapping, occluding,
+  colliding — or per whatever the philosophy named instead, in the order the philosophy said the
+  stacking means, with baked or radial-gradient contact shadows on one consistent light. Pass
+  `embed(..., max_width=)` at the width each fragment is drawn.
 - **Stage C — text.** Optional, and free in register — whisper-labels to bold display type
   overlaid across the imagery, even fractured non-linearly (hard to do well; attempt with intent,
   not as a gimmick). Use system faces or download what the philosophy asks for into
   `./collage-fonts`; either way, vectorize to paths before shipping.
 - **Stage D — render & verify.** Render with **inkscape**, then prove portability with
   `scripts/check_render.sh`. A PASS means the `.svg` and the shipped `.png` are the same picture in
-  any renderer; a FAIL means a filter or an un-vectorized font leaked in — fix and re-export. Then
-  run the self-check below.
+  any renderer. A FAIL means the two engines disagree, which is usually a leaked filter or an
+  un-vectorized font — read the diff image it writes before assuming which, because a grain-heavy
+  piece can diverge on resampling alone. Then run the self-check below.
 
 ### THE COLLAGE SELF-CHECK — RUN IT BEFORE YOU CALL THE PIECE DONE
 
@@ -331,10 +379,13 @@ sentence. Then act on the result; none of this goes to the user.
 2. **Escape** — name the fragment whose silhouette breaks its bounding box or the canvas edge.
    *Override: a philosophy committed to contained, rectangular fragments.*
 3. **Unification** — name the treatment (style + seed) applied to every fragment and confirm none
-   escaped it. *Override: a philosophy committed to deliberate tonal clash — then confirm instead
-   that the clash is systematic rather than accidental, and say what governs it.*
-4. **Density** — is more than half the canvas empty?
-   *Override: a philosophy that asked for the emptiness and said what it is doing.*
+   escaped it. *Override: a philosophy committed to deliberate tonal clash — point at the sentence
+   naming what governs it instead, and confirm the piece obeys that.*
+4. **Density** — count the fragments, then look at the *shape* of the arrangement: do three or
+   more share a baseline, and is the largest at least 3× the smallest? Coverage is not the
+   measure. Even scale at even spacing is exactly what drift looks like, and it can be perfectly
+   dense. *Override: a philosophy that fixed a different count, or asked for the regularity, and
+   said what it is doing.*
 
 A default that fails with no override means the piece **drifted** — it isn't finished. Fix it and
 re-render. A reason constructed after the fact is not an override; it is the drift talking.
@@ -368,8 +419,10 @@ argue with.
 collagist eventually gets: *close, but it still looks assembled rather than made.* This pass is
 not optional.
 
-**Do not add more fragments.** Reaching for one more image treats a coherence problem as a content
-problem. Ask instead how what is already here reads more as a single made object — usually:
+**Do not add more fragments to fix how it *reads*.** Reaching for one more image treats a
+coherence problem as a content problem. (A count that came out thin is a different fault, caught
+at the self-check and fixed before you arrive here.) Ask instead how what is already present reads
+more as a single made object — usually:
 
 - **Registration** — fragments that nearly align but don't.
 - **Reconciliation** — a fragment still carrying its original colour temperature.
