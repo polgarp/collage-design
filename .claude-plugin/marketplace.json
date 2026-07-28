@@ -1,0 +1,33 @@
+{
+  "name": "collage-design",
+  "description": "Cut-and-layer collage art from real, open-licensed imagery.",
+  "owner": {
+    "name": "Peter Balazs Polgar",
+    "url": "https://github.com/polgarp"
+  },
+  "plugins": [
+    {
+      "name": "collage-design",
+      "source": "./",
+      "displayName": "Collage Design",
+      "description": "Makes cut-and-layer collage art: sources real open-licensed photographs and printed material, cuts them, reconciles them into one palette, and composes a finished piece as a portable .svg plus its .png, with every source logged and licence-checked.",
+      "version": "1.0.0",
+      "category": "art-and-design",
+      "tags": [
+        "collage",
+        "photomontage",
+        "poster",
+        "generative-art",
+        "svg",
+        "public-domain"
+      ],
+      "author": {
+        "name": "Peter Balazs Polgar",
+        "url": "https://github.com/polgarp"
+      },
+      "homepage": "https://github.com/polgarp/collage-design",
+      "repository": "https://github.com/polgarp/collage-design",
+      "license": "Apache-2.0"
+    }
+  ]
+}
