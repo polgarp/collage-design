@@ -2,38 +2,61 @@
 
 Exact, reusable commands for the collage pipeline. Every run needs most of these — use them
 verbatim instead of re-deriving them, and reach for the bundled `scripts/` helpers first (they wrap
-the fiddly, error-prone steps). Read this when you reach Movement 4 (Compose).
+the fiddly, error-prone steps). Read this when you reach Movement 4 (Compose) — except §4, which
+you need at Movement 3, when you start pulling material.
+
+**"Stage A"** below means fragment preparation — every raster operation, done before anything
+enters the SVG: normalising exposure, cutting edges, lifting silhouettes, and applying the
+reconciling treatment. It has a name because it is where all the pixel work belongs; the SVG stage
+carries only assembly and type, which is what keeps the shipped file renderer-independent.
 
 ## Table of contents
-1. Font setup (fontconfig)
+1. Fonts (automatic; how the check works and why not `fc-match`)
 2. Text → paths (portability)
 3. Render + cross-renderer check (svg == png)
-4. Asset validation (avoid 404-HTML-as-image)
-5. Surveying the pool, and the art recipes (duotone/tritone, edges, knockouts, grain)
+4. Fetching + asset validation (collisions, throttling, 404-HTML-as-image)
+5. Surveying the pool, batching Stage A, and the art recipes (edges, knockouts, treatments)
 6. SVG assembly gotchas (filters, shadows, embedding, clipping)
+7. The build script (a first-class deliverable)
 
 ---
 
-## 1. Font setup (fontconfig)
+## 1. Fonts
 
-**Never assume a face resolves — verify it, installed ones included.** `rsvg`/`inkscape` resolve
-fonts through fontconfig and substitute silently when it fails, and a stock system config can be
-wrong even about faces that are definitely installed — matching an entire family to an unrelated
-fallback, so a slab serif quietly becomes something else.
+**Mostly automatic now — `scripts/fonts.py` handles this.** `svgkit.Canvas` generates a working
+font config on first use and `svgkit.render()` defaults to it, so a downloaded face no longer
+depends on remembering to thread `FONTCONFIG_FILE=` through every command. If you shell out to
+`inkscape`/`rsvg-convert` yourself, you still must pass it inline (shell state does not survive
+between tool calls, so `export` won't do).
 
 ```bash
-scripts/setup_fonts.sh ./collage-fonts     # → prints FONTCONFIG_FILE=/abs/path/fonts.conf
-FONTCONFIG_FILE=<conf> fc-match -f '%{family[0]}\n' '<your family>'   # must echo it back
+scripts/setup_fonts.sh ./collage-fonts                      # → FONTCONFIG_FILE=/abs/path/fonts.conf
+scripts/setup_fonts.sh ./collage-fonts Futura Overpass      # …and verify these exist; exit 1 if not
+scripts/fonts.py --list-families | grep -i grotesk          # what IS available
 ```
 
-Use `fc-match`, not `fc-list`: listing proves the file is on disk, which is not the same as
-fontconfig choosing it. If a family comes back as something else, write a conf naming the
-directories that hold it — **system font directories included** — and pass that.
+**A missing family is a hard error, not a warning.** `Canvas.text()` raises `FontSubstitution` at
+the call that named the font. This is deliberate: a substituted face is baked into outlines by
+`vectorize_text.sh`, and `check_render.sh` renders the same SVG twice and diffs, so a
+wrong-but-consistent typeface passes every gate that follows. There is no later point at which the
+mistake is visible. `COLLAGE_ALLOW_FONT_SUBSTITUTION=1` downgrades it to a warning.
 
-Pass `FONTCONFIG_FILE=` **inline on every render/vectorize command** — shell state does not persist
-between tool calls, so `export` won't survive. A generated conf keeps the system directories
-alongside your download dir; hand-write one and you must do the same, or `FONTCONFIG_FILE`
-replaces the system config and every installed font disappears.
+**Test membership, not matching — never `fc-match`.** This is the part that is easy to get wrong,
+and two plausible approaches are actively broken:
+
+- **`fc-match` name comparison.** Matching always *succeeds*: it returns the nearest family it
+  knows, so you are measuring name distance, not availability. Worse, Homebrew's stock config
+  omits `/System/Library/Fonts/Supplemental` — where macOS keeps Futura, Optima, Baskerville,
+  American Typewriter, Didot — so it reports those as Hiragino Sans while **Inkscape and rsvg
+  render them correctly**, resolving through CoreText instead. Five of five tested faces were
+  slandered this way. Fail a build on that and you block a working typeface.
+- **Rendering a probe and comparing against a nonsense family.** Unsound: the fallback the engine
+  picks depends on the *name*, so `Fake Face 99` and `ZzQq No Such Family` land on different faces
+  and a genuinely missing font sails through.
+
+`fc-list` enumerates rather than matches, so membership in it is exact. That is what `fonts.py`
+uses (8/8 installed faces found, 3/3 invented ones rejected), against a config that names every
+font directory — including the ones the stock config forgets.
 
 ---
 
@@ -95,12 +118,57 @@ the SVG before you go hunting. The two things it can be:
   0.00075 at w=2400, with nothing wrong in the file.
 
 **What PASS does not mean.** This gate compares one SVG against itself across two engines, so it
-verifies `svg == png`, never `svg == intended`. A font substituted before vectorizing is baked
-into both renders identically and passes. §2 is the only place that is caught.
+verifies `svg == png`, never `svg == intended`. A font substituted before vectorizing is baked into
+both renders identically and passes here. §1 catches that at the `text()` call and §2 refuses to
+vectorize it — this gate never will.
 
 ---
 
-## 4. Asset validation (avoid 404-HTML-as-image)
+## 4. Fetching and asset validation (avoid 404-HTML-as-image)
+
+**Query the archive's API, not its pages.** Most open archives expose one, and it returns licence
+and dimensions inline — so you filter for what is usable before downloading anything, instead of
+opening twenty pages to find out. Two worth knowing by name:
+
+```bash
+# Library of Congress — any search URL takes &fo=json
+curl -s 'https://www.loc.gov/photos/?q=night+street&fo=json' \
+  | jq -r '.results[] | [.id, .title, .image_url[-1]] | @tsv'
+
+# Wikimedia Commons — search + imageinfo in one call; extmetadata carries the licence
+curl -s 'https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search \
+&gsrnamespace=6&gsrsearch=matchbox%20label&gsrlimit=100&prop=imageinfo \
+&iiprop=url|size|extmetadata' \
+  | jq -r '.query.pages[] | [.title, .imageinfo[0].url,
+            .imageinfo[0].extmetadata.LicenseShortName.value] | @tsv'
+```
+
+Tier-filter on the licence field before you fetch — it is far cheaper than downloading a pool and
+discovering afterwards that half of it is CC BY-SA and has made the whole piece copyleft.
+
+**Then use `scripts/fetch.py` for any pull of more than a handful of files.** It bakes in the four
+things a hand-written loop gets wrong, all of which fail silently:
+
+```bash
+scripts/fetch.py --out sources/ --json items.json --attributions attributions.md
+scripts/fetch.py --out sources/ --prefix lab_ URL [URL ...]
+```
+
+- **Filenames keyed on the archive's identifier**, never the title. Titles collide; a real pull
+  reported 179 downloaded and left 168 on disk, and the surviving files then carry the wrong rows
+  in `attributions.md`. Duplicate ids abort *before* the network, so it costs one line to fix.
+- **`files on disk == downloads reported`**, asserted at the end. Fails the run if not.
+- **Exponential backoff honouring `Retry-After`.** A 429 body writes to disk as a nonzero-size
+  non-image, i.e. it looks exactly like a successful download.
+- **Multi-frame detection.** Re-running is idempotent, so recovering a partial pull costs only the
+  missing files.
+
+**Do not raise the delay.** See the politeness note in the module docstring — briefly: the archives
+are donation-funded, going faster past the limit *corrupts* the pool rather than speeding it up,
+and abuse gets the next person blocked. Parallelise Stage A (`--jobs`) instead; that is where the
+time actually is.
+
+### Validating by hand
 
 WebFetch sometimes reports **guessed/stale image URLs** (invented `-hires`/`-800` variants) that
 404 to an HTML error page of nonzero size. Always confirm a download is a real image before using
@@ -109,8 +177,19 @@ it:
 identify sources/foo.jpg   # errors if it's HTML/garbage, not an image
 file sources/foo.jpg       # should say JPEG/PNG, not "HTML document"
 ```
-If it fails, re-fetch the source page and read the true `src` — **unless the URL came from an API
-response rather than a guess, in which case just retry the same URL once first.** Sustained
+**A file can be a real image and still break Stage A by being more than one.** Some Commons files
+are animated GIFs whatever extension they were saved under (Muybridge sequences especially);
+`identify` confirms they are images, because they are. But `magick in.jpg out.png` on a multi-frame
+input writes `out-0.png`, `out-1.png`, … and never `out.png`, so the build dies two stages
+downstream with a `FileNotFoundError` on a path that names nothing. **Append `[0]` to the input** —
+harmless on single-frame files, so it costs nothing to do always:
+```bash
+magick 'in.jpg[0]' -colorspace Gray -level 3%,97% norm.png
+```
+`fetch.py` flags these at download time.
+
+If validation fails, re-fetch the source page and read the true `src` — **unless the URL came from
+an API response rather than a guess, in which case just retry the same URL once first.** Sustained
 fetching gets throttled, and a throttle response is also an HTML page of nonzero size, so it looks
 exactly like the stale-URL failure and sends you looking for a URL problem that isn't there. A
 plain re-fetch succeeds. `sleep 1` between downloads in a bulk loop avoids it altogether.
@@ -121,15 +200,58 @@ plain re-fetch succeeds. `sleep 1` between downloads in a bulk loop avoids it al
 
 Do all raster effects here (Stage A) so the SVG stays filter-free.
 
+**Run Stage A as a batch, not a loop — `--manifest` + `--jobs`.** Every fragment is independent,
+so this is embarrassingly parallel, and a per-fragment subprocess is the wrong shape twice over:
+for the 300–500 px images a deep archive pull yields, interpreter *startup* costs more than the
+pixels. A manifest amortizes startup across every fragment in one process and `--jobs` uses the
+other cores. Measured on 100 fragments: **13.9 s → 4.2 s (manifest) → 1.2 s (`--jobs 8`)**, and a
+244-fragment piece runs four operations each.
+
+```bash
+cat > cuts.txt <<'EOF'
+work/norm/001.png  work/cut/001.png  --seed 1
+work/norm/002.png  work/cut/002.png  --seed 2      # per-item flags override the shared ones
+EOF
+cut.py   --style torn    --jobs 8 --manifest cuts.txt
+treat.py --style duotone --seed 4 --jobs 8 --manifest treats.txt   # one shared seed: cohesion
+```
+Lines are `IN OUT [flags]`, inherit everything from the top-level invocation, and `#` comments and
+blanks are skipped. **Output is byte-identical at any `--jobs`** — seeds are per-item, so nothing
+depends on scheduling order; `scripts/check_batch.sh` asserts it against generated fixtures.
+
+Note which seed spelling you want: a *per-item* `--seed` is right for cuts, where every tear should
+differ; the *inherited* one is right for the reconciling treatment, where every fragment must match.
+They are one line apart, which is the point.
+
 **Look at the pool before you cut it up — `scripts/survey.py`.** It builds a labelled contact
 sheet and measures each source, which is faster and more reliable than opening twenty files:
 ```bash
 scripts/survey.py sources/* --sheet contact.png       # sheet + per-source table
+scripts/survey.py sources/* --knockout-sheet ko.png   # the actual mattes, over a checkerboard
+scripts/survey.py sources/* --liftable                # only the ones worth cutting out
+scripts/survey.py plate.jpg --grid 4x5                # measure a gridded plate cell by cell
 scripts/survey.py sources/* --find-patch 900 900      # best flat-colour crops, ready to paste
 ```
-The table answers two questions the eye is bad at: `ground` is border variance (is there one flat
-ground?) and `contrast` is subject/ground separation (is there a subject to lift?) — together they
-predict whether `knockout.py` will work before you spend three attempts finding out.
+**The liftability verdict runs the real matte**, sweeping tolerance and measuring the shape that
+comes back — `kept%`, `solidity` (area / bounding box: ~1.0 is a rectangle, a figure runs 0.3–0.6)
+and `span` (that box as a share of the frame). It is not a prediction from input statistics, so it
+cannot disagree with `knockout.py`; both judge at the same fixed resolution for the same reason.
+
+This costs a few seconds per source and is worth every one of them. The heuristic it replaces —
+flat border plus something far from it — was wrong in both directions, and expensively: on one
+290-file pool it rated **111 sources liftable** whose mattes were whole photographs with the scan
+frame trimmed, and rejected gridded plates that were clean per cell. The piece built from that pool
+shipped one silhouette.
+
+**Two traps the numbers now name for you:**
+
+- *The flat thing is usually the scan frame.* Verdict says `whole frame — trimmed a scan border,
+  lifted nothing`. Not fixable by tolerance; the frame is not the ground.
+- *A plate is not a fragment.* Measure the crop you intend to cut. One real Muybridge plate scores
+  `no — whole frame` as a file and **13 of 20 liftable cells** under `--grid 4x5`.
+
+**Look at `--knockout-sheet` before committing.** A 3%-of-frame scrap passes the thresholds and is
+obviously useless on sight. The numbers shortlist; the sheet decides.
 
 `--find-patch` is the same idea pushed further, and it generalises. **A philosophy dimension
 written precisely enough can be turned into a selector.** "Colour as ingredient, never colour as
@@ -228,13 +350,25 @@ scripts/cut.py --sticker 16 --sticker-color '#f4efe2' treated.png sticker.png   
 **Silhouette knockout — use `scripts/knockout.py`** (lift a subject off a flat/neutral ground;
 PIL/numpy only, no ML):
 ```bash
-knockout.py --tolerance 40 in.jpg cutout.png     # remove border-connected bg, keep interior holes
+knockout.py in.jpg cutout.png                    # --tolerance auto is the default
+knockout.py --report in.jpg                      # judge one frame, write nothing
+knockout.py --shave auto --keep-largest in.jpg cutout.png       # past a mount border, drop specks
 knockout.py --global in.jpg cutout.png           # remove ALL bg-coloured pixels (scattered line-art)
-knockout.py --bg 255,255,255 --keep-largest in.jpg cutout.png   # explicit bg + drop stray specks
+knockout.py --bg 255,255,255 --tolerance 40 in.jpg cutout.png   # pin values in a build script
 ```
-Handles flat/neutral backgrounds **the subject contrasts with**. A subject on a busy background
-can't be lifted cleanly here — use that photo as a torn *rectangle* instead, or install `rembg` for
-ML matting (opt-in; see the sourcing doctrine). Then fray the real silhouette:
+**Don't hand-search the tolerance.** `--tolerance auto` sweeps and picks the plateau of the kept%
+curve — a real subject/ground boundary puts a gap in the colour-distance histogram, so kept% goes
+flat across it, and no gap means no edge. It prints the value it chose; pin that into the build
+script for reproducibility. Guessing this by hand costs several failed attempts per source and
+teaches you the material is uncuttable when it isn't.
+
+It then **tells you when it produced a rectangle** — solidity near 1.0 across most of the frame
+means the matte trimmed a scan border and kept the photograph. Read that warning; it is the single
+most common way a knockout fails, and it fails looking like a success.
+
+A subject on a genuinely busy background still can't be lifted here — use that photo as a torn
+*rectangle*, or install `rembg` for ML matting (opt-in; see the sourcing doctrine). Then fray the
+real silhouette, which is what stops a knockout reading as a die-stamp:
 `cut.py --style rough --from-alpha cutout.png out.png`.
 
 **Read what it prints.** `kept %` is the subject's share of the frame, and `contrast` is how far
@@ -249,13 +383,15 @@ mean opposite things:
   archive photography carries constantly. It seals the sheet off from the image edge, so
   border-connected removal never reaches the real ground and the sheet survives whole. Once
   treated, its paper-coloured ground is nearly invisible against the canvas, which is what makes
-  this easy to miss. `--shave 4` crops past it before matting.
+  this easy to miss. `--shave auto` detects the band and crops past it before matting; `--shave 4`
+  is the usual manual dose. Note that `--report` and `survey.py` already apply this detection, so
+  their verdict is about the sheet's real ground rather than its mount.
 
 **Knock out harder when you plan to fray.** `--from-alpha` moves the contour around, which exposes
 any halo of background-coloured pixels the matte left behind — invisible on a clean knockout, but
 pale flecks once the edge is torn. Erode a little more than feels necessary:
 ```bash
-knockout.py --tolerance 40 --keep-largest --erode 3 --feather 0.5 in.jpg cutout.png
+knockout.py --keep-largest --erode 3 --feather 0.5 in.jpg cutout.png
 cut.py --style rough --from-alpha --seed 4 cutout.png final.png
 ```
 
@@ -331,3 +467,35 @@ synthetic — and it cannot be fixed in the SVG, because every raster effect liv
 generate the band as a raster, run it through the **same treatment with the same seed**, bake its
 shadow, and place it in the z-stack where later fragments overlap it. It then belongs. This
 follows from the filter-free rule, and the failure mode is easy to misread as a colour problem.
+
+---
+
+## 7. The build script (a first-class deliverable)
+
+The script that made the piece ships with it. `philosophy.md` records the why; this records the
+how, and is what lets a finished collage be *edited* rather than remade.
+
+- **Re-runnable from the shipped folder.** Include the fragment preparation — cuts, knockouts,
+  treatments — with paths relative to the output directory, so cloning the folder and running the
+  script reproduces the `.png`. Never leave it depending on a scratch directory that isn't shipped:
+  that is the difference between an artwork you can adjust and a one-off you can only admire.
+- **Parametric.** Fragment positions and scales, palette hexes, canvas size, rotation and opacity
+  as named variables near the top. Tuning the piece should mean changing a value, not reading the
+  composition code and finding the right number buried in a call.
+- **Legible.** Comment the intent of each layer — what it is doing for the picture, not what the
+  function does.
+
+```python
+# --- parameters -------------------------------------------------------
+W, H        = 2400, 2400
+INK, PAPER  = "#141414", "#e8e2d0"
+SEED        = 7
+FRAGMENTS   = [   # (source,               x,    y,    w,   rot)
+    ("work/label_017.png",                 180,  240,  520,  -3),
+    ("work/label_042.png",                 640,  190,  380,   5),
+]
+# ----------------------------------------------------------------------
+```
+
+Pin values the tools chose for you rather than re-deriving them at build time — an auto-selected
+knockout tolerance, a seed — so the script is deterministic and a re-run cannot drift.

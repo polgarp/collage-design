@@ -19,22 +19,33 @@ shadows, live <text>), so the shipped .svg matches its .png in any engine — ke
     c.text("THE BODY CORPORATE", 200, 260, size=90, font="Anton", fill="#e8e2d0")
     c.raw('<path d="..." fill="#c33"/>')          # escape hatch: any custom SVG you invent
     c.save("collage.svg")
-    svgkit.render("collage.svg", "collage.png", 2400, fontconfig=CONF)
+    svgkit.render("collage.svg", "collage.png", 2400)
 
-Then, per doctrine: vectorize downloaded-font text (scripts/vectorize_text.sh) and verify the
-shipped .svg == .png (scripts/check_render.sh) before shipping.
+Fonts are handled: `text()` verifies the family is installed and raises rather than letting the
+renderer substitute silently, and `render()` generates its own fontconfig, so a downloaded face
+needs no FONTCONFIG_FILE threaded through by hand. Put downloads in ./collage-fonts (override
+with Canvas(..., fonts_dir=)).
+
+Then, per doctrine: vectorize text (scripts/vectorize_text.sh) and verify the shipped
+.svg == .png (scripts/check_render.sh) before shipping.
 """
 import base64, io, os, subprocess, sys
 from contextlib import contextmanager
 from PIL import Image
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import fonts
+
 def _esc(s):
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 class Canvas:
-    def __init__(self, w, h, bg=None):
+    def __init__(self, w, h, bg=None, fontconfig=None, fonts_dir="./collage-fonts"):
         self.w, self.h = int(w), int(h)
         self._defs, self._body, self._embedded, self._n = [], [], {}, 0
+        # Resolved lazily: a canvas with no text should not pay for fc-cache, and a piece that
+        # never calls .text() never needs a font config at all.
+        self._fontconfig, self._fonts_dir, self._fonts_checked = fontconfig, fonts_dir, set()
         if bg:
             self._body.append(f'<rect width="{self.w}" height="{self.h}" fill="{bg}"/>')
 
@@ -119,9 +130,33 @@ class Canvas:
         self._body.append(
             f'<ellipse cx="{cx:.1f}" cy="{cy:.1f}" rx="{rx:.1f}" ry="{ry:.1f}" fill="url(#{gid})"/>')
 
+    @property
+    def fontconfig(self):
+        """The font config this canvas resolves against, generated on first use.
+
+        Never the stock system config: on macOS that one omits
+        /System/Library/Fonts/Supplemental and therefore cannot see most named text faces.
+        See fonts.py."""
+        if self._fontconfig is None:
+            self._fontconfig = fonts.conf(self._fonts_dir)
+        return self._fontconfig
+
     def text(self, s, x, y, size=48, font="serif", fill="#111", anchor="start",
              rotate=0, spacing=0, weight=None, opacity=1.0):
-        """A live <text> element. Vectorize downloaded fonts before shipping (see doctrine)."""
+        """A live <text> element. Vectorize downloaded fonts before shipping (see doctrine).
+
+        **The font is verified here, and a substitution raises.** `fc-match` cannot fail — it
+        returns the nearest family it knows — so an unavailable face renders, vectorizes and
+        passes `check_render.sh` (which compares a render against itself) while being the
+        wrong typeface. On a stock macOS fontconfig that is five of five common faces
+        silently becoming Hiragino Sans. Checking at the call that names the font makes it a
+        two-second error in the build script instead of a discovery after shipping.
+
+        Each family is checked once per Canvas. Set COLLAGE_ALLOW_FONT_SUBSTITUTION=1 for the
+        deliberate case."""
+        if font not in self._fonts_checked:
+            self._fonts_checked.add(font)
+            fonts.require([font], self.fontconfig)
         a = (f'x="{x}" y="{y}" font-family="{font}" font-size="{size}" fill="{fill}" '
              f'text-anchor="{anchor}"')
         if spacing: a += f' letter-spacing="{spacing}"'
@@ -187,11 +222,16 @@ class Canvas:
             f.write(self.svg())
         return path
 
-def render(svg_path, png_path, width, fontconfig=None):
-    """Render the shipping PNG with inkscape (the one committed renderer)."""
+def render(svg_path, png_path, width, fontconfig=None, fonts_dir="./collage-fonts"):
+    """Render the shipping PNG with inkscape (the one committed renderer).
+
+    Defaults to a GENERATED font config rather than the system one. Passing nothing used to
+    mean "use the stock config", which on macOS cannot see /System/Library/Fonts/Supplemental
+    and so renders most named faces as Hiragino Sans — a default that silently produced the
+    wrong picture. Pass an explicit path to override; there is no way to ask for the stock
+    config, because wanting it is always a mistake here."""
     env = dict(os.environ)
-    if fontconfig:
-        env["FONTCONFIG_FILE"] = fontconfig
+    env["FONTCONFIG_FILE"] = fontconfig or fonts.conf(fonts_dir)
     subprocess.run(["inkscape", svg_path, "--export-type=png",
                     f"--export-filename={png_path}", "-w", str(int(width))],
                    env=env, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

@@ -53,7 +53,10 @@ The organic styles (torn/rough/burnt) displace a CLOSED contour inward along its
 normals, so a tear carries continuously through the corners instead of leaving them at
 90 degrees. `--from-alpha` follows the subject's real silhouette the same way.
 """
-import argparse, sys
+import argparse, os, sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import batch
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
@@ -411,8 +414,9 @@ def build(args):
         name += "+sticker"
 
     img.save(args.output)
-    print(f"cut '{name}' -> {args.output}  ({img.width}x{img.height}, "
-          f"sides={sorted(args.sides)}, seed={args.seed})")
+    if not getattr(args, "quiet", False):
+        print(f"cut '{name}' -> {args.output}  ({img.width}x{img.height}, "
+              f"sides={sorted(args.sides)}, seed={args.seed})")
     return 0
 
 def main():
@@ -443,7 +447,9 @@ def main():
     ap.add_argument("--amplitude", type=float, default=None)  # torn
     ap.add_argument("--jitter", type=float, default=None)     # rough
     ap.add_argument("--char", type=float, default=None)       # burnt
-    sys.exit(build(ap.parse_args()))
+    batch.add_args(ap)
+    args = ap.parse_args()
+    sys.exit(batch.run(ap, args, "cut") if args.manifest else build(args))
 
 if __name__ == "__main__":
     main()

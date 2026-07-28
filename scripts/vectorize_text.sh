@@ -10,24 +10,25 @@ out="${3:?out.svg}"
 
 # Fonts are FROZEN at this step: object-to-path bakes in whatever fontconfig resolved, and no
 # later check can see a substitution — check_render.sh renders the same SVG twice, so a
-# wrong-but-consistent face passes it happily. This is the only place the mistake is visible,
-# so check resolution before converting.
+# wrong-but-consistent face passes it happily. This is the LAST point at which the mistake is
+# visible, so it is a hard failure here rather than a warning: a warning in a long build log
+# is functionally the same as no warning, and the piece ships in the wrong typeface.
+#
+# Set COLLAGE_ALLOW_FONT_SUBSTITUTION=1 for the rare deliberate case.
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# fonts.py owns the comparison, so this and svgkit.Canvas.text() apply exactly the same rule
+# (generics skipped, whitespace- and case-insensitive family match) and cannot drift apart.
+fams=()
 while IFS= read -r fam; do
-  [ -z "$fam" ] && continue
-  case "$(printf '%s' "$fam" | tr 'A-Z' 'a-z')" in
-    serif|sans-serif|"sans serif"|monospace|cursive|fantasy|system-ui) continue ;;
-  esac
-  got="$(FONTCONFIG_FILE="$conf" fc-match -f '%{family[0]}' "$fam" 2>/dev/null || true)"
-  a="$(printf '%s' "$fam" | tr 'A-Z' 'a-z' | tr -d ' ')"
-  b="$(printf '%s' "$got" | tr 'A-Z' 'a-z' | tr -d ' ')"
-  if [ "$a" != "$b" ]; then
-    echo "vectorize_text.sh: WARNING — '$fam' resolves to '$got'" >&2
-    echo "  About to be baked into paths; no later check will catch it." >&2
-    echo "  Fix fontconfig (pipeline-recipes.md §1) or accept this deliberately." >&2
+  [ -n "$fam" ] && fams+=("$fam")
+done < <(grep -o 'font-family="[^"]*"' "$in" | sed 's/font-family="//;s/"$//' | sort -u)
+
+if [ "${#fams[@]}" -gt 0 ]; then
+  if ! python3 "$here/fonts.py" --conf "$conf" --require "${fams[@]}" >/dev/null; then
+    echo "vectorize_text.sh: refusing to bake a substituted face into outlines." >&2
+    exit 1
   fi
-done <<EOF
-$(grep -o 'font-family="[^"]*"' "$in" | sed 's/font-family="//;s/"$//' | sort -u)
-EOF
+fi
 
 # Convert ONLY the text. `select-all:all;object-to-path` also *unlinks clones*, which expands
 # every <use> back into a duplicated <image> — undoing svgkit's embed-once economy and roughly

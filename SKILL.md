@@ -25,6 +25,12 @@ Four movements:
   and stop; never substitute generated or invented imagery.
 - **Local tooling:** ImageMagick, Inkscape, librsvg, fontconfig, Python + Pillow + NumPy. Run
   `scripts/check_deps.sh` first; it prints the install line for anything missing.
+- **The bundled toolkit is a reference implementation, not the requirement.** `scripts/` covers
+  fetching, surveying the pool, edge-cutting, silhouette extraction, unifying treatments and SVG
+  assembly; `references/pipeline-recipes.md` holds the exact commands and the traps for each. Use
+  them — they encode failures that are expensive to rediscover. But what this skill actually
+  demands is the judgement in Movements 1–3 and the invariants in Movement 4. If you have better
+  tools, use them and meet the same bar.
 - **This is a long job** — if the user wants something quick, tell them before Movement 1. A
   multi-piece **series** costs far less than N× a single piece: sourcing dominates the budget, and
   one source pool feeds every piece in the set.
@@ -45,11 +51,16 @@ lost, it drifted.**
 **The defaults:**
 - Fragments **overlap and occlude** — things sit in front of other things.
 - Some subjects are **silhouette knockouts that break their bounding box** — a hand, a figure, a
-  specimen spilling past any implied frame. This is settled at *sourcing*, not composition:
-  knockouts need flat/neutral grounds (Movement 3) and documentary photography rarely has one. With
-  busy sources, take the escape from a fragment bleeding off the **canvas edge** instead.
-- **Edges are visible and physical** — torn fiber, knife-cut bevel, cast shadow; never an
-  invisible seam around a rectangle.
+  specimen spilling past any implied frame. This is settled at *sourcing*, not composition: it
+  depends on finding material a subject can be lifted out of, which is Movement 3's job and is
+  measured there rather than guessed. Most pools contain some; plates, sequences and anything shot
+  against a sweep or a night ground are usually rich in them, and the measurement finds them per
+  *crop*, so a source that looks hopeless whole is often not. A pool that genuinely holds none —
+  labels and ephemera cropped to their own printed border, say — takes the escape from a fragment
+  bleeding off the **canvas edge** instead. Reach for that because the material was measured and
+  came back empty, not before looking.
+- **Edges are visible and physical** — torn fiber, knife-cut bevel, cast shadow. Every fragment
+  shows how it was severed; the edge is where the piece declares it was cut by someone.
 - **Density is a virtue** — and it is a matter of *count and scale variance*, not coverage: many
   fragments, the largest several times the smallest. A dozen mid-sized pieces at even spacing is
   the drift however much of the page they cover. Open space only where text must be read.
@@ -134,8 +145,10 @@ redundancy:
   precedence, chronology, suppression, who is burying whom. "Order by occlusion" is a rendering
   instruction; an order carrying an argument is a decision, and the difference shows. The
   **container shape** is available too — one large silhouette holding the others, acting as both
-  subject and ground (`svgkit.clip_to`), a register that wants many small fragments rather than a
-  few big ones. Shadows default to paper lifting a millimetre off paper: tight, close, one light.
+  subject and ground. It is an unforgiving register: it wants many small fragments rather than a
+  few big ones, and it wants them inside the silhouette rather than scattered across its bounding
+  box, or the outline does no work and the piece reads as random shapes.
+  Shadows default to paper lifting a millimetre off paper: tight, close, one light.
   Anything broader is an argument the philosophy has to make.
 - **The reconciling move** — *the decision that most determines whether this works.* Disparate
   sources arrive in clashing colour, light and grain. The default answer is a unifying treatment
@@ -162,8 +175,9 @@ redundancy:
   studio imprints, signage and price tickets bring their own lettering, often louder and better
   drawn than anything you will set. Does the piece's voice outrank the sources', match them, or
   hide among them? Not choosing is what leaves a title designed as though the page were empty; the
-  default is **distinct, or largest** — compete or differ, but don't tie. What's never wanted is
-  *explanation*: paragraphs mean the piece stopped being visual. Poster **furniture** is a
+  default is **distinct, or largest** — compete or differ, and let the two voices be told apart.
+  Keep type in service of the image: a word, a label, a line. The moment it explains, the piece has
+  stopped being visual and started being a caption. Poster **furniture** is a
   different thing and usually wanted — dates, venue, a billing block, an edition number, a
   printer's imprint — small structured text, and often what makes a poster read as a poster rather
   than an image with a word on it.
@@ -174,11 +188,11 @@ redundancy:
   document has stopped making decisions and started reassuring itself. Go deeper instead of
   circling back.
 - **Set the standard by describing the hand.** The finished piece has to look *made* — cut by
-  someone with a scalpel, a cutting mat, and more patience than the job strictly required. Don't
-  assert this once and move on; write the philosophy so that the standard is legible in how it
-  talks about material. Describe the registration a fragment gets, how a seam disappears, what
-  the maker would refuse to let past. A collage that reads as clip-art dropped onto a page has
-  failed before anyone considers whether the concept was good.
+  someone with a scalpel, a cutting mat, and more patience than the job strictly required. Carry
+  that standard through every paragraph rather than asserting it once: write so it is legible in
+  how the document talks about material. Describe the registration a fragment gets, how a seam
+  disappears, what the maker would refuse to let past. A collage that reads as clip-art dropped
+  onto a page has failed before anyone considers whether the concept was good.
 - **Decide the aesthetic, not the artwork.** The philosophy fixes the register; execution still
   has to invent the composition. Over-specify and you have written a layout in prose and thrown
   away the interpretation that makes it worth doing.
@@ -258,8 +272,8 @@ each thing you pull.** Finding the archive is the expensive part, not taking thi
 inside a public-domain collection of a thousand can labels, the fifteenth costs a line in a
 download loop and a row in `attributions.md`, and a representative handful is what leaves a piece
 thin. One plate also yields a different fragment per crop, the same crop recut with a different
-`--seed` is a genuinely different edge, and a cut fragment can be placed more than once at
-different scales — `svgkit` stores each payload once, so repetition is free. The fragment count is
+random seed is a genuinely different edge, and a cut fragment can be placed more than once at
+different scales — a repeated placement should cost nothing but a line. The fragment count is
 not the download count. Recutting and repetition are seasoning on a large pool rather than a
 substitute for one: used to disguise a thin pool they only make the thinness rhythmic.
 
@@ -274,30 +288,51 @@ General wells, as a floor rather than a map:
 - **Government image libraries** — NASA, NOAA, and national equivalents; usually public domain.
 - **Unsplash / Pexels** — contemporary free-to-use photography.
 
-**Query the archives' APIs rather than their pages** where they have one — `loc.gov/photos/?q=…&fo=json`
-and the Wikimedia Commons `generator=search` endpoint with `iiprop=url|size|extmetadata` both return
-dimensions and licence inline, so you tier-filter in `jq` instead of opening twenty pages. Fall back
-to `WebSearch` / `WebFetch`, and to browser tools if any are available when a source needs
-navigating. Download **high-resolution originals** into a `sources/` directory —
-resolution matters, because cutting and scaling punishes small images. **Validate every download
-is a real image** (`identify` / `file`) before using it: WebFetch sometimes reports a guessed URL
-that 404s to an HTML error page of nonzero size that looks like a successful download. Keep
+**Query the archives' APIs rather than their pages** where they have one: they return licence and
+dimensions inline, so you can filter for what is usable *before* downloading anything rather than
+opening twenty pages to find out. Fall back to search and fetch tools, and to a browser if one is
+available when a source needs navigating.
+
+**Download with the bundled fetcher rather than a loop written for the occasion.** A bulk pull
+fails in ways that are silent by nature — the log reports success and the pool is quietly wrong,
+with files missing and `attributions.md` crediting the survivors to the wrong rows. That is a
+licensing document going wrong, which is the most expensive failure available here. Use something
+that guards against it.
+
+**Be polite, and don't optimise it away.** These archives are free and donation-funded, and going
+faster than they allow corrupts the pool rather than speeding it up. The speedup worth having is on
+local processing, which is a different resource entirely.
+
+Download **high-resolution originals** into `sources/` — resolution matters, because cutting and
+scaling punishes small images. It is a reason to prefer big scans, not always a reason to reject
+small ones: where a whole archive shares a low ceiling, let the pool set the canvas size instead of
+fighting it, and the same material that looked marginal is drawn at native resolution. Keep
 `sources/` as pristine originals; write processed cutouts and intermediate fragments to a scratch
 working dir, never into `sources/`.
 
-**Prefer *cuttable* subjects.** Extraction here is classical (`scripts/knockout.py`, PIL/numpy),
-so it lifts a subject cleanly only off a flat ground **the subject contrasts with**. Flatness
-alone is not the predictor: a pale dress on a pale studio sweep is a perfectly flat ground and
-cannot be lifted at any tolerance, because subject and fill sit at the same value. Don't guess at
-it — `scripts/survey.py` measures both and prints a verdict per source, and `knockout.py` says so
-when a matte has eaten the subject. A subject on a busy background can't be knocked out cleanly
-without ML matting (`rembg` is an opt-in ~170 MB dependency; install it only if a piece truly
-demands it), so use such photos as torn **rectangles** instead. Choosing what you can actually cut
-is half of good collage sourcing.
+**Prefer *cuttable* subjects.** Choosing what you can actually cut is half of good collage
+sourcing, and it is a measurement rather than a judgement — so measure it, per source, before
+composing anything around material that may not survive extraction.
 
-**Then look at what you actually got** — `scripts/survey.py sources/* --sheet contact.png` builds
-a labelled contact sheet alongside the measurements. Composition is decided by the material, and a
-directory listing is not the material.
+**What usually defeats a knockout is framing, not contrast.** The reflex worry — a subject sitting
+at the same value as its ground, a pale dress on a pale sweep — is real, unfixable at any
+tolerance, and rare. The common failures are both about what is in the frame:
+
+- **The flat thing is usually the scan frame.** Archive photography is mounted or scanned with a
+  border, so a uniform edge means nothing: keying against it trims the border and returns the whole
+  photograph as a rectangle. A test that only asks "is the border flat?" calls that a success.
+- **A plate is not a fragment.** Gridded plates, contact sheets and mounted prints measure as
+  hopeless whole and are often clean cell by cell. Measure the *crop you actually intend to cut*,
+  never the file as it happens to be framed.
+
+So check the crops before concluding a pool has nothing in it. Where a piece
+genuinely needs a subject off a genuinely busy ground, ML matting is available as an opt-in extra.
+Otherwise such photos are torn **rectangles**, which is an honest answer and not a lesser one.
+
+**Then look at what you actually got** — the pool as a contact sheet, and the cutouts as actual
+mattes. A verdict is a word; a knockout that quietly returned a rectangle looks fine in a table and
+is obvious on sight. Composition is decided by the material, and a directory listing is not the
+material.
 
 ### LICENSE COMPATIBILITY — WHAT THE SOURCES DO TO THE FINISHED PIECE
 
@@ -328,48 +363,68 @@ a substitute. Working only with what genuinely exists is part of the craft.
 
 ---
 
-## MOVEMENT 4 — COMPOSE ON AN SVG SUBSTRATE
+## MOVEMENT 4 — COMPOSE
 
 With philosophy, reference, and material in hand, assemble the collage. The deliverables are a
 self-contained `.svg`, its `.png` render, and the build script that made them.
 
-Reach for what the piece needs, in whatever order, and build what these steps don't cover — when a
-philosophy wants an edge or a treatment the presets don't reach, write it against `cut.py
---style-file` / `treat.py --style-file` or import their cores, rather than settling for the nearest
-preset. `svgkit.py` has no layout presets: invent the composition.
+### THE INVARIANTS
 
-Only three things are fixed — open-licensed sources, a filter-free `.svg` that matches its `.png`,
-and a saved build script. Filter-free is what makes the second one true: SVG filter primitives
-render differently in every engine, so all raster effects happen in ImageMagick/PIL at Stage A and
-SVG carries nothing but assembly and type.
+Four things must be true of the finished piece. They are properties of the artifact, not of any
+particular toolchain, and they are what everything else here is in service of:
 
-**Read `references/pipeline-recipes.md` before running the stages below.** It holds the exact
-commands and the traps for each one — font setup, text-to-path, rendering and the portability
-check, asset validation, the raster recipes, and SVG assembly. Use it rather than re-deriving any
-of it.
+1. **Every fragment is open-licensed or user-supplied**, and logged in `attributions.md`.
+2. **The `.svg` is self-contained and renderer-independent** — the same picture in any engine.
+   SVG's own effect primitives render *completely differently* across renderers, so none of them
+   survive into the shipped file: every raster effect is baked into the fragments beforehand, and
+   the SVG carries only embedded images, plain geometry and outlined text. Don't assume this
+   holds — render in a second engine and diff.
+3. **Text is vectorized, and set in the face you asked for.** Both halves matter. Font resolution
+   fails *silently*: an unavailable family is substituted with no error, and once outlined nothing
+   downstream can detect it — a render compared against itself will pass happily. Verify the family
+   resolves before converting to paths.
+4. **The build is re-runnable and parametric.** One legible script, shipped alongside the piece,
+   that regenerates it from the folder it ships in — fragment preparation included, depending on
+   nothing left behind in a scratch directory. Everything a person would want to nudge is a named
+   value they can find and change, not a number buried in a call. `philosophy.md` records the why;
+   the script records the how, and is what lets the piece be *edited* rather than remade. A collage
+   you cannot regenerate or adjust is a dead end.
 
-- **Stage A — cut & unify.** Cut each fragment's edge in the philosophy's edge language with
-  **`cut.py`** (clean / rounded / scallop / pinking / torn / rough / burnt, any subset of sides,
-  seeded; `--sticker` lays a die-cut keyline, and belongs *after* the treatment). Lift the
-  silhouettes chosen at sourcing with **`knockout.py`**, then fray the real
-  contour via `cut.py --from-alpha`. Apply the unifying treatment with **`treat.py`** —
-  *identically* to every fragment, same style and seed, unless the philosophy overrode
-  unification — so clashing sources fuse into one object.
-- **Stage B — assemble (SVG).** Compose with **`svgkit.py`**: `Canvas` with embed-once, `place`
-  with rotate+scale, `contact_shadow`, `text`, `clip_to` for a container silhouette, a `raw()`
-  escape hatch, `render`. Place fragments per the default register — overlapping, occluding,
-  colliding — or per whatever the philosophy named instead, in the order the philosophy said the
-  stacking means, with baked or radial-gradient contact shadows on one consistent light. Pass
-  `embed(..., max_width=)` at the width each fragment is drawn.
-- **Stage C — text.** Optional, and free in register — whisper-labels to bold display type
-  overlaid across the imagery, even fractured non-linearly (hard to do well; attempt with intent,
-  not as a gimmick). Use system faces or download what the philosophy asks for into
-  `./collage-fonts`; either way, vectorize to paths before shipping.
-- **Stage D — render & verify.** Render with **inkscape**, then prove portability with
-  `scripts/check_render.sh`. A PASS means the `.svg` and the shipped `.png` are the same picture in
-  any renderer. A FAIL means the two engines disagree, which is usually a leaked filter or an
-  un-vectorized font — read the diff image it writes before assuming which, because a grain-heavy
-  piece can diverge on resampling alone. Then run the self-check below.
+### THE WORK
+
+Not a fixed pipeline — reach for what the piece needs. The philosophy already decided the edge
+language, the reconciling move, what the stacking means and how type is set; execution is where
+those get applied rather than reconsidered. Three things only come up here:
+
+- **Build what the philosophy asked for.** Where it named an edge or a treatment your tools don't
+  cover, make that one — the register was decided on purpose, and a piece assembled from the
+  nearest available approximations ends up looking like whatever was easy.
+- **Fray a knockout's contour.** A silhouette lifted with a machine-clean outline reads as a
+  die-stamp, not as something cut by hand — the one place a cutout betrays itself.
+- **The treatment must reach every fragment identically.** It is the mechanism that makes a dozen
+  archives one object, so a single fragment that escaped it is visible immediately. This is the
+  thing most likely to slip when fragments are prepared in batches.
+
+### ORDER
+
+Usually: prepare fragments, then compose. Two things disturb that, and both are cheaper to know
+than to discover:
+
+- **A treatment that reads a fragment's position must wait for the layout.** If the reconciling
+  move samples a field across the finished sheet — an ageing that varies with where a fragment
+  sits — then nothing can be treated until the composition is settled. Compute the layout first,
+  then prepare each fragment for the place it lands.
+- **That also makes repetition expensive.** Placing one cut fragment several times at different
+  scales is normally free, because the payload is stored once. A position-dependent treatment
+  removes that saving entirely: every placement needs its own treated copy. Decide which of the two
+  you want before building the pool.
+
+Then render, prove the `.svg` and `.png` are the same picture, and run the self-check below.
+
+**`references/pipeline-recipes.md` has the commands and the traps** — fonts, text-to-path, the
+portability check, querying archives and validating what comes back, the raster recipes, SVG
+assembly, and the shape of the build script. Read it rather than re-deriving any of it; each entry
+is there because it cost something to learn.
 
 ### THE COLLAGE SELF-CHECK — RUN IT BEFORE YOU CALL THE PIECE DONE
 
@@ -381,6 +436,9 @@ sentence. Then act on the result; none of this goes to the user.
 1. **Occlusion** — name two fragments where one visibly sits in front of the other.
    *Override: a philosophy committed to a grid, or to isolated fragments.*
 2. **Escape** — name the fragment whose silhouette breaks its bounding box or the canvas edge.
+   A canvas-edge bleed satisfies the letter of this and is the cheap answer; if the pool held
+   liftable material and none of it was cut out, that is drift rather than a decision. The
+   sourcing survey already answered whether it did, so answer this from that evidence.
    *Override: a philosophy committed to contained, rectangular fragments.*
 3. **Unification** — name the treatment (style + seed) applied to every fragment and confirm none
    escaped it. *Override: a philosophy committed to deliberate tonal clash — point at the sentence
@@ -399,19 +457,6 @@ separates an amendment from an excuse — it is what made the constraint binding
 
 Iterate here until it passes. Ship the piece, not the checklist.
 
-**Ship the `.svg`, the `.png`, and the build script — the script is a first-class deliverable.**
-`philosophy.md` records the why; the build script records the how, and lets the piece be *edited*
-rather than remade. Author the whole composition as one legible script in the output directory:
-
-- **Re-runnable from the shipped folder** — include the Stage-A prep (cuts, treatments, knockouts)
-  in the script, with paths relative to the output dir, so cloning the folder and running it
-  reproduces the `.png`. Never leave it depending on a scratch directory.
-- **Parametric** — fragment positions and scales, palette hexes, canvas size, rotation, opacity as
-  named variables near the top, so the piece is tuned by changing values.
-- **Legible** — comment the intent of each layer.
-
-A collage you cannot regenerate or adjust is a dead end.
-
 **The craft bar.** The piece has to survive close looking: seams that don't announce themselves,
 the treatment reaching every fragment, every shadow answering to one light, nothing placed where
 it merely fits. Two readings, both required — it resolves instantly into one object from across a
@@ -426,10 +471,10 @@ argue with.
 collagist eventually gets: *close, but it still looks assembled rather than made.* This pass is
 not optional.
 
-**Do not add more fragments to fix how it *reads*.** Reaching for one more image treats a
-coherence problem as a content problem. (A count that came out thin is a different fault, caught
-at the self-check and fixed before you arrive here.) Ask instead how what is already present reads
-more as a single made object — usually:
+**Work with what is already on the page.** How a piece *reads* is a coherence problem, and reaching
+for one more image treats it as a content problem — the fragments are rarely what's missing. (A
+count that came out thin is a different fault, caught at the self-check and fixed before you arrive
+here.) Ask what would make the present material read as a single made object — usually:
 
 - **Registration** — fragments that nearly align but don't.
 - **Reconciliation** — a fragment still carrying its original colour temperature.

@@ -29,9 +29,12 @@ of the treatment, and the cohesion rule below covers them too.
 
 Cohesion rule: run the SAME style + seed over EVERY fragment, or they won't read as one object.
 """
-import argparse, sys
+import argparse, os, sys
 import numpy as np
 from PIL import Image
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import batch
 
 TREATMENTS = {}
 def treatment(name, helptext):
@@ -130,7 +133,8 @@ def build(args):
     rng = np.random.default_rng(args.seed)
     fn, name = _resolve(args)
     save_rgb(img, fn(rgb, args, rng), args.output)
-    print(f"treat '{name}' -> {args.output}  ({img.width}x{img.height}, seed={args.seed})")
+    if not getattr(args, "quiet", False):
+        print(f"treat '{name}' -> {args.output}  ({img.width}x{img.height}, seed={args.seed})")
     return 0
 
 def main():
@@ -146,7 +150,9 @@ def main():
     ap.add_argument("--dark"); ap.add_argument("--mid"); ap.add_argument("--light")
     ap.add_argument("--amount", type=float, default=None)
     ap.add_argument("--seed", type=int, default=0)
-    sys.exit(build(ap.parse_args()))
+    batch.add_args(ap)
+    args = ap.parse_args()
+    sys.exit(batch.run(ap, args, "treat") if args.manifest else build(args))
 
 if __name__ == "__main__":
     main()

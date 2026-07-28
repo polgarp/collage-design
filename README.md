@@ -1,13 +1,11 @@
 # collage-design
 
-A Claude skill that makes **cut-and-layer collage**: it goes and finds real, open-licensed
-photographs and printed material, cuts them, unifies them into one palette, and composes a
-finished art piece as a portable `.svg` plus its `.png`.
+A Claude skill that makes **cut-and-layer collage**: it finds real, open-licensed photographs and
+printed material, cuts them, unifies them into one palette, and composes a finished art piece as a
+portable `.svg` plus its `.png`.
 
-It writes a *collage philosophy* first — an aesthetic movement invented for the brief, deciding
-where the material comes from, how it is torn or knife-cut, how it stacks, and what treatment
-reconciles a dozen clashing archives into one object — then sources against that philosophy and
-composes to it.
+Everything in the result is sourced from real archives and logged with its licence, so the artwork
+is safe to print, publish and sell.
 
 ## Install
 
@@ -16,6 +14,31 @@ git clone https://github.com/polgarp/collage-design.git ~/.claude/skills/collage
 ~/.claude/skills/collage-design/scripts/check_deps.sh
 ```
 
+## Use it
+
+Just ask for the picture you want. You don't need to say "collage", and you don't need to name any
+of the machinery:
+
+> *"A tall poster for a running club's night race through the city. Bodies in motion, streetlights,
+> sweat. Should feel like it's moving."*
+
+> *"Square cover art for a supper club called Brine. Sardine tins, market stalls, mid-century food
+> packaging. Appetising and slightly grotesque."*
+
+> *"A square print for my kitchen made from old matchbox labels — hundreds of tiny loud pictures.
+> I want it to feel like a collector's sheet that's got out of hand."*
+
+Worth including if you have a view: **orientation and size**, the **mood**, and any **archive or
+era** you want it drawn from. Worth mentioning **what the piece is for** - a book jacket, an album
+cover, something you'll sell - because that decides which licences are acceptable, and it's easier
+to settle before sourcing than after.
+
+To use your own images, point at a folder: *"…use the scans in `~/Pictures/grandad-slides`."*
+They can be mixed freely with sourced material.
+
+**Asking for a series is much cheaper than asking for N pieces.** Sourcing dominates the cost, and
+one pool feeds every piece in the set.
+
 ## Requirements
 
 - **Real source imagery** — either web access, so it can pull from open-licensed archives, or a
@@ -23,48 +46,55 @@ git clone https://github.com/polgarp/collage-design.git ~/.claude/skills/collage
   if it has neither.
 - **ImageMagick, Inkscape, librsvg, fontconfig, Python + Pillow + NumPy.** `check_deps.sh` prints
   the install line for anything missing. No ML dependencies.
-- **Time and tokens.** Roughly 100–150k tokens for one piece, and a long run. Output is a 5–10 MB
-  `.svg` and a 10–20 MB `.png` — the fragments are embedded rather than linked, which is what makes
-  the `.svg` self-contained. This is not a thirty-second tool.
+
+## What to expect
+
+- **20–40 minutes** for one piece, and roughly 100–150k tokens. Most of the wall time is sourcing,
+  not compute.
+- **Four to six render cycles.** Iteration is built in, so the first render is not the deliverable
+  — if it looks assembled rather than made, that's the stage it's at, not a failure.
+- **Disk:** up to ~540 MB of working intermediates for a large piece, plus 25–250 MB of sources.
+- **Sourcing is deliberately rate-limited** to stay welcome at the archives it depends on. Don't
+  raise it; going faster corrupts the pool rather than speeding it up. Local processing is
+  parallel already.
+- **A missing typeface stops the run** rather than silently substituting another face. Install the
+  font, pick another, or set `COLLAGE_ALLOW_FONT_SUBSTITUTION=1` if you want it substituted.
 
 ## What you get
 
 | | |
 |---|---|
-| `philosophy.md` | The aesthetic movement invented for the piece |
+| `<piece>.svg` / `.png` | The artwork: self-contained SVG, and the shipping render |
+| `philosophy.md` | The aesthetic movement invented for the piece — its register, edges, palette, and what reconciles the sources |
+| `attributions.md` | Every asset with URL, creator and licence, and what those licences mean for reusing the result |
 | `sources/` | Original downloads, unmodified |
-| `attributions.md` | Every asset with URL, creator, licence — and what those licences mean for reusing the result |
-| `<piece>.svg` / `.png` | Self-contained and filter-free / the shipping render |
 | `build_*.py` | Parametric build script, so the piece can be edited rather than remade |
 
-Three things are measured rather than assumed: `check_render.sh` proves the `.svg` and `.png` are
-the same picture in any renderer, `survey.py` scores each source for whether a subject can actually
-be cut out of it, and an internal self-check on the render — occlusion, frame-breaking cutout,
-treatment coverage, fragment count and scale spread — drives iteration before anything is called
-done.
+The `.svg` and `.png` are verified to be the same picture in any renderer, and fragment positions,
+scales, palette and canvas size are named variables at the top of the build script — so you can
+adjust a finished piece by changing a value and re-running, instead of starting over.
 
 ## Extending it
 
-`cut.py` ships seven edge styles and `treat.py` five treatments, but both are built around one
-extension point, a drop-in file, or importing the plumbing — and both pass custom parameters
-through, so an invented style is a first-class citizen rather than a squatter on `--radius`:
+`cut.py` ships seven edge styles and `treat.py` five treatments, and both take a drop-in file with
+your own parameters, so an invented style is a first-class citizen:
 
 ```bash
 cut.py   --style-file my_edge.py  --param fade=0.45 in.jpg out.png   # def mask(w, h, p, rng)
 treat.py --style-file my_treat.py --param warmth=0.6 in.png out.png  # def treat(rgb, p, rng)
-cut.py   --sticker 16 treated.png sticker.png     # die-cut keyline following the silhouette
+cut.py   --sticker 16 treated.png sticker.png        # die-cut keyline following the silhouette
+cut.py   --style torn --jobs 8 --manifest cuts.txt   # cut many fragments at once, across cores
 ```
 
-`svgkit.py` ships no layout presets at all, composition has to be invented per piece, so the
-library only handles embed-once, placement, renderer-safe shadows, text, and clipping a group of
-fragments into a container silhouette.
+`svgkit.py` handles embed-once, placement, renderer-safe shadows, text, and clipping fragments into
+a container silhouette. It ships no layout presets — composition is invented per piece.
 
 ## Licensing
 
 Apache 2.0 (`LICENSE.txt`). Derived from Anthropic's `canvas-design` — see `NOTICE.md`.
 
-**Artwork you make with it is a separate question.** A collage is a derivative of every fragment
-in it, so the most restrictive source sets the terms for the whole piece. The skill prefers public
+**Artwork you make with it is a separate question.** A collage is a derivative of every fragment in
+it, so the most restrictive source sets the terms for the whole piece. The skill prefers public
 domain / CC0, flags CC BY as needing credit, warns that **CC BY-SA is viral** and makes your
 finished artwork copyleft, and treats CC ND as disqualifying. That reasoning ships in every
 `attributions.md`.

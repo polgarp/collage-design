@@ -1,0 +1,261 @@
+#!/usr/bin/env python3
+"""
+fonts.py — make a requested typeface actually be the typeface that renders.
+
+THE FAILURE THIS EXISTS TO PREVENT
+
+`fc-match` cannot fail. Ask it for a family it does not know and it returns the nearest thing
+it does know, with no error and no warning. Everything downstream then behaves perfectly: the
+SVG renders, `vectorize_text.sh` bakes the substituted face into outlines, and
+`check_render.sh` passes — because it renders the same SVG twice and compares, so a
+wrong-but-consistent face is invisible to it. The piece ships in the wrong typeface and
+nothing anywhere said so.
+
+ASK WHETHER THE FAMILY EXISTS, NOT WHAT IT MATCHES
+
+The instinct is to run `fc-match Futura` and see whether "Futura" comes back. Don't: that is a
+*matching* call, and matching always succeeds. It answers "what is the nearest family I know?"
+— a question about name distance — when the question you have is "is this font installed?"
+
+Two things follow, and this project got both wrong before getting them right.
+
+**Under the stock macOS config, `fc-match` slanders faces that work.** Homebrew's `fonts.conf`
+scans `/System/Library/Fonts`, `/Library/Fonts` and `~/Library/Fonts` but **not
+`/System/Library/Fonts/Supplemental`** — where macOS keeps nearly every named text face
+(Futura, Optima, Baskerville, American Typewriter, Didot, Rockwell…). So `fc-match Futura`
+answers "Hiragino Sans", and five of five faces tested did exactly that. Yet **Inkscape and
+rsvg render Futura correctly anyway**, resolving through CoreText rather than that config —
+verified by rendering, with and without `FONTCONFIG_FILE`. The renderers were never broken.
+The check was. So the old warning was a false alarm, and turning that same oracle into a hard
+failure — the obvious "fix" — would block builds over typefaces that render perfectly.
+
+**And rendering-based probes are unsound.** The tempting test is to render the family and
+compare against a family that cannot exist. It does not work, because the fallback the engine
+picks DEPENDS ON THE NAME: 'Fake Face 99' and 'ZzQq No Such Family' fall back to different
+faces, so a genuinely missing font does not match the sentinel and passes. Comparing against
+the face `fc-match` names fails for the same reason. Both measured, not assumed.
+
+What works is **membership**: `fc-list` enumerates rather than matches, so a family is either
+in the index or it is not. Against a config that names every font directory, that is exact —
+verified 8/8 installed faces present, 3/3 invented ones absent — and it costs one `fc-list`
+per run, cached.
+
+THE REST OF THE FIX
+
+  * `conf()` finds or creates a config naming every font directory, including the ones the
+    stock config omits, idempotently and cached. This is also what makes DOWNLOADED fonts
+    visible, which is a genuine need regardless of the above.
+  * `require()` turns a missing family into an exception. `svgkit.Canvas.text()` calls it,
+    moving the error from "baked into outlines twenty minutes later" to the line of the build
+    script that named the font.
+  * `svgkit.render()` defaults to `conf()`, so a downloaded face is never missed for want of
+    an inline environment variable nobody remembered to thread through.
+
+Usage:
+    import fonts
+    cf = fonts.conf("./collage-fonts")        # generate/find; safe to call repeatedly
+    fonts.require(["Futura", "Optima"], cf)   # raises FontSubstitution on any mismatch
+
+    fonts.py --dir ./collage-fonts                       # print the conf path
+    fonts.py --dir ./collage-fonts --require Futura Optima   # verify; exit 1 on substitution
+    fonts.py --list-families                             # what IS available
+"""
+import argparse, os, subprocess, sys
+
+# CSS generics are not faces and are supposed to resolve to something else.
+GENERIC = {"serif", "sans-serif", "sans serif", "monospace", "cursive", "fantasy",
+           "system-ui", "ui-sans-serif", "ui-serif", "ui-monospace"}
+
+# Re-declared in every generated config. FONTCONFIG_FILE *replaces* the system configuration
+# rather than extending it, so anything omitted here disappears — including, on macOS, the
+# directory the stock config already forgets.
+FONT_DIRS = [
+    "/System/Library/Fonts",
+    "/System/Library/Fonts/Supplemental",   # <- the macOS omission this whole module is about
+    "/System/Library/AssetsV2/com_apple_MobileAsset_Font7",   # Apple's downloadable faces;
+    "/System/Library/AssetsV2/com_apple_MobileAsset_Font6",   # the stock config lists these,
+    "/System/Library/AssetsV2/com_apple_MobileAsset_Font5",   # so omitting them would make
+    "/Library/Fonts",                                        # this config WORSE than stock
+    "~/Library/Fonts",
+    "/usr/share/fonts",
+    "/usr/local/share/fonts",
+    "/opt/homebrew/share/fonts",
+    "~/.fonts",
+    "~/.local/share/fonts",
+]
+
+CONF_XML = """<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+<fontconfig>
+  <!-- Generated by collage-design/scripts/fonts.py. Do not hand-edit; it is regenerated.
+       FONTCONFIG_FILE REPLACES the system config, so every directory must be named here. -->
+  <dir>{fonts_dir}</dir>
+{dirs}
+  <include ignore_missing="yes">/etc/fonts/fonts.conf</include>
+  <cachedir>{cache}</cachedir>
+</fontconfig>
+"""
+
+class FontSubstitution(Exception):
+    """A requested family resolved to a different one. Raised rather than warned because a
+    warning at this point scrolls past and the mistake is unrecoverable two steps later."""
+
+def _norm(s):
+    return "".join((s or "").lower().split())
+
+def conf(fonts_dir="./collage-fonts", force=False):
+    """Path to a fontconfig file that can actually see the system faces.
+
+    Idempotent and cheap: if the config already exists it is returned as-is unless `force`.
+    Creates `fonts_dir` if absent — a piece set entirely in system faces still needs this
+    config, so "I downloaded no fonts" is the normal path rather than an error."""
+    fonts_dir = os.path.abspath(os.path.expanduser(fonts_dir))
+    os.makedirs(fonts_dir, exist_ok=True)
+    base = os.path.join(os.path.dirname(fonts_dir), "fontconfig")
+    cache = os.path.join(base, "cache")
+    path = os.path.join(base, "fonts.conf")
+    os.makedirs(cache, exist_ok=True)
+    if force or not os.path.exists(path):
+        dirs = "\n".join(f"  <dir>{d}</dir>" for d in FONT_DIRS)
+        with open(path, "w") as fh:
+            fh.write(CONF_XML.format(fonts_dir=fonts_dir, dirs=dirs, cache=cache))
+    # Re-cache EVERY time, not only when the config is written. A font downloaded after the
+    # config already existed would otherwise never be indexed — and that is the normal order
+    # of events, since the config gets generated early and the typeface is chosen later.
+    # fc-cache on one small directory is milliseconds; skipping it is a false economy.
+    subprocess.run(["fc-cache", "-f", fonts_dir], env=dict(os.environ, FONTCONFIG_FILE=path),
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+    _index_cache.pop(path, None)                 # the index just changed
+    return path
+
+def env(fontconfig=None, base=None):
+    """An environment dict with FONTCONFIG_FILE set — for subprocess calls."""
+    return dict(base or os.environ, FONTCONFIG_FILE=fontconfig or conf())
+
+def resolve(family, fontconfig=None):
+    """What `fc-match` SAYS this family resolves to. Advisory only — see `renders`.
+
+    Never raises; returns '' if fc-match is unavailable."""
+    try:
+        r = subprocess.run(["fc-match", "-f", "%{family[0]}", family],
+                           env=env(fontconfig), capture_output=True, text=True, check=True)
+        return r.stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return ""
+
+_index_cache = {}
+
+def index(fontconfig=None):
+    """Every family fontconfig can serve, normalised. One `fc-list`, cached per config.
+
+    MEMBERSHIP, NOT MATCHING — this is the whole trick. `fc-match` is a *matching* call: it
+    always succeeds, returning the nearest family it knows, so "did I get back what I asked
+    for?" is a question about fuzzy name distance rather than about availability. `fc-list`
+    enumerates. A family is either in the index or it is not."""
+    if fontconfig in _index_cache:
+        return _index_cache[fontconfig]
+    try:
+        r = subprocess.run(["fc-list", ":", "family"], env=env(fontconfig),
+                           capture_output=True, text=True, check=True)
+    except (OSError, subprocess.CalledProcessError):
+        _index_cache[fontconfig] = None          # cannot verify; callers must not hard-fail
+        return None
+    fams = {_norm(n) for line in r.stdout.splitlines() for n in line.split(",") if n.strip()}
+    _index_cache[fontconfig] = fams
+    return fams
+
+def check(families, fontconfig=None):
+    """[(requested, verdict, ok)] for each family. Generics are reported ok and left alone.
+
+    Costs one `fc-list` for the whole call, cached — cheap enough to run unconditionally on
+    every piece, which is the point: a check nobody can afford to run is a check nobody runs.
+
+    Two earlier designs for this were wrong and are worth not repeating:
+
+      * `fc-match` name comparison. Under the STOCK macOS config it reports five of five
+        common faces as Hiragino Sans, because that config omits
+        /System/Library/Fonts/Supplemental — yet Inkscape and rsvg render them correctly.
+        Wiring that to a hard failure blocks builds over working typefaces.
+      * Rendering the family and comparing against a nonsense family. Unsound: the fallback
+        the engine picks DEPENDS ON THE NAME, so 'Fake Face 99' and 'ZzQq No Such Family'
+        fall back to different faces and a missing font sails through. Measured, not assumed.
+
+    Membership against a config that names every font directory has neither failure mode:
+    verified 8/8 installed faces present, 3/3 invented ones absent."""
+    out = []
+    generics = {_norm(g) for g in GENERIC}
+    have = index(fontconfig)
+    for f in families:
+        if not f or _norm(f) in generics:
+            out.append((f, "generic", True)); continue
+        if have is None:
+            out.append((f, "fc-list unavailable — cannot verify", True)); continue
+        if _norm(f) in have:
+            out.append((f, "ok", True))
+        else:
+            out.append((f, f"NOT INSTALLED — falls back to '{resolve(f, fontconfig)}'", False))
+    return out
+
+def require(families, fontconfig=None):
+    """Raise FontSubstitution if any family resolves to something else.
+
+    Set COLLAGE_ALLOW_FONT_SUBSTITUTION=1 to downgrade to a warning — for the rare deliberate
+    case where a generic or an alias is what you actually want."""
+    bad = [(f, g) for f, g, ok in check(families, fontconfig) if not ok]
+    if not bad:
+        return
+    lines = [f"    '{f}': {g}" for f, g in bad]
+    msg = ("font not installed, so it will be silently substituted:\n" + "\n".join(lines) +
+           "\n  Nothing downstream can catch this: object-to-path bakes the substituted face"
+           "\n  into outlines, and check_render.sh compares a render against itself, so the"
+           "\n  wrong typeface passes every gate."
+           "\n  Fix: drop the font file into your fonts dir and regenerate the config"
+           "\n       (fonts.py --dir <dir> --force), or use a family that exists:"
+           "\n       fonts.py --list-families | grep -i <name>")
+    if os.environ.get("COLLAGE_ALLOW_FONT_SUBSTITUTION"):
+        print(f"WARNING: {msg}", file=sys.stderr)
+        return
+    raise FontSubstitution(msg)
+
+def families(fontconfig=None):
+    try:
+        r = subprocess.run(["fc-list", ":", "family"], env=env(fontconfig),
+                           capture_output=True, text=True, check=True)
+    except (OSError, subprocess.CalledProcessError):
+        return []
+    seen = set()
+    for line in r.stdout.splitlines():
+        for name in line.split(","):
+            if name.strip():
+                seen.add(name.strip())
+    return sorted(seen)
+
+def main():
+    ap = argparse.ArgumentParser(description="Generate and verify a usable fontconfig.")
+    ap.add_argument("--dir", default="./collage-fonts", help="directory of downloaded fonts")
+    ap.add_argument("--conf", help="verify against an EXISTING config instead of generating "
+                                   "one (used by vectorize_text.sh, which is handed the conf "
+                                   "the rest of the build already used)")
+    ap.add_argument("--force", action="store_true", help="regenerate the config")
+    ap.add_argument("--require", nargs="*", metavar="FAMILY",
+                    help="verify each family resolves to itself; exit 1 if not")
+    ap.add_argument("--list-families", action="store_true")
+    a = ap.parse_args()
+
+    cf = a.conf or conf(a.dir, force=a.force)
+    if a.list_families:
+        print("\n".join(families(cf)))
+        return 0
+    if a.require:
+        rows = check(a.require, cf)
+        for f, g, ok in rows:
+            print(f"  {'ok  ' if ok else 'FAIL'}  {f:<28} -> {g}")
+        if any(not ok for *_, ok in rows):
+            print("\nA substitution here is silent everywhere downstream. See fonts.py docs.",
+                  file=sys.stderr)
+            return 1
+    print(f"FONTCONFIG_FILE={cf}")
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
