@@ -7,26 +7,47 @@ portable `.svg` plus its `.png`.
 Everything in the result is sourced from real archives and logged with its licence, so the artwork
 is safe to print, publish and sell.
 
+## What it makes
+
+Four pieces, each from the one sentence printed under it. Nothing here is generated imagery — every
+fragment is a real scan from an open archive, cut and re-lit by the skill.
+
+|  |  |
+|:--|:--|
+| ![Strike Anywhere — a square sheet packed with hundreds of vintage Indian and Japanese matchbox labels, tidy rows in one corner decaying into an overlapping pile](examples/strike-anywhere.jpg) | ![Brine — square cover art layering Norwegian sardine tin labels, lima bean can wrappers and market produce photography over black](examples/brine.jpg) |
+| **Strike Anywhere** — 244 fragments cut from 179 public-domain labels.<br>*"A square print for my kitchen made from old matchbox labels — hundreds of tiny loud pictures. I want it to feel like a collector's sheet that's got out of hand."* | **Brine** — three source families, cut three different ways, under one wet-varnish treatment.<br>*"Square cover art for a supper club called Brine. Sardine tins, market stalls, mid-century food packaging. Appetising and slightly grotesque."* |
+| ![Sodium — a tall dark poster, a running figure's silhouette filled with sepia night photography under a sodium streetlamp glow, titled NOCTURNE](examples/sodium.jpg) | ![Mauve — a portrait poster of Victorian studio portraits in grey with hard-edged fluorescent magenta squares and colour calibration charts laid across them](examples/mauve.jpg) |
+| **Sodium** — the city cut into the runner's silhouette; poster furniture set in the same pass.<br>*"A tall poster for a running club's night race through the city. Bodies in motion, streetlights, sweat. Should feel like it's moving."* | **Mauve** — the unifying treatment deliberately overridden, so the seam stays visible.<br>*"A portrait poster where Victorian studio portraiture collides with present-day colour photography. Don't blend them — I want the seam to show."* |
+
+Each run also writes the aesthetic movement it invented for the piece, the full source ledger, and
+the build script that made it — see [What you get](#what-you-get).
+
 ## Install
+
+**As a plugin** (recommended — updates in place):
+
+```
+/plugin marketplace add polgarp/collage-design
+/plugin install collage-design@collage-design
+```
+
+**Or as a plain skill:**
 
 ```bash
 git clone https://github.com/polgarp/collage-design.git ~/.claude/skills/collage-design
-~/.claude/skills/collage-design/scripts/check_deps.sh
 ```
+
+The skill runs its own dependency check at the start of every piece and prints the install line for
+anything missing, so there's nothing else to set up. To check ahead of time, run
+`scripts/check_deps.sh` from wherever you put it.
+
+> **Claude Code only.** The pipeline shells out to ImageMagick, Inkscape and librsvg on your own
+> machine, so it does not run on claude.ai or the desktop app.
 
 ## Use it
 
 Just ask for the picture you want. You don't need to say "collage", and you don't need to name any
-of the machinery:
-
-> *"A tall poster for a running club's night race through the city. Bodies in motion, streetlights,
-> sweat. Should feel like it's moving."*
-
-> *"Square cover art for a supper club called Brine. Sardine tins, market stalls, mid-century food
-> packaging. Appetising and slightly grotesque."*
-
-> *"A square print for my kitchen made from old matchbox labels — hundreds of tiny loud pictures.
-> I want it to feel like a collector's sheet that's got out of hand."*
+of the machinery — the four briefs above are the whole of what was typed to make those pieces.
 
 Worth including if you have a view: **orientation and size**, the **mood**, and any **archive or
 era** you want it drawn from. Worth mentioning **what the piece is for** - a book jacket, an album
