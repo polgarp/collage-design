@@ -86,6 +86,7 @@ one pool feeds every piece in the set.
 | | |
 |---|---|
 | `<piece>.svg` / `.png` | The artwork: self-contained SVG, and the shipping render |
+| `brief.md` | The original request, verbatim — what the critique checks the finished piece against |
 | `philosophy.md` | The aesthetic movement invented for the piece — its register, edges, palette, and what reconciles the sources |
 | `attributions.md` | Every asset with URL, creator and licence, and what those licences mean for reusing the result |
 | `sources/` | Original downloads, unmodified |

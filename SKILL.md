@@ -9,17 +9,20 @@ layered and reconciled into a single object, with text laid over as the philosop
 Built from **actual photographs and printed material found on the open web**, under
 open licences only.
 
-The deliverables are `philosophy.md`, `attributions.md`, a self-contained `.svg`, its `.png`
+The deliverables are `brief.md`, `philosophy.md`, `attributions.md`, a self-contained `.svg`, its `.png`
 render, and the build script that made them.
 
 Four movements:
 1. **Collage philosophy** (`philosophy.md`)
 2. **Deduce the subtle reference**
 3. **Source the material** (open-licensed or user-supplied → `sources/` + `attributions.md`)
-4. **Compose on an SVG substrate** → `.svg` + `.png` + build script, then a polish pass.
+4. **Compose on an SVG substrate** → `.svg` + `.png` + build script, then a critique against the brief and a polish pass.
 
 ### BEFORE STARTING
 
+- **Save the brief verbatim** to `brief.md`: the user's words and anything they pointed to.
+  Movement 1 writes the philosophy without the commission on purpose; this file is what the
+  critique before the polish pass checks the piece against.
 - **Real imagery is mandatory** — either downloaded from the open web (needs `WebSearch`/`WebFetch`
   or browser tools) or taken from a folder the user points you at. With neither available, say so
   and stop; never substitute generated or invented imagery.
@@ -462,6 +465,49 @@ the treatment reaching every fragment, every shadow answering to one light, noth
 it merely fits. Two readings, both required — it resolves instantly into one object from across a
 room, and rewards standing in front of. Follow your eye, with the philosophy as the thing you
 argue with.
+
+---
+
+## INTENT & CRAFT CRITIQUE — BEFORE THE POLISH PASS
+
+The pipeline moves away from the brief by design: the philosophy is written without the commission,
+and execution reaches for whatever is easiest. Each step is reasonable, and together they can
+produce a handsome piece that would have suited any brief. This critique pulls the work back to what
+was asked. Run it on the rendered image, not on the code, and before polishing: polish refines what
+is there, it cannot restore intent that was lost upstream.
+
+**1. Blind read.** If you can start a subagent, give it `brief.md` and the rendered image and
+nothing else (not the philosophy, not your reasoning), and ask: what does this piece say, who is it
+for, and which of the brief's asks does it answer or miss? Without a subagent, write that read
+yourself from the image alone, before rereading the brief. Knowing what you meant is exactly what
+makes a piece look like it says it.
+
+**2. Intent.** Reread `brief.md`: the user's words, not your paraphrase of them.
+- Every explicit ask is present: the words, the format, the use (a wall, a feed, a print at a size).
+- The blind read and the brief describe the same piece. Where they diverge, the piece is wrong, not
+  the reader.
+- The subtle reference lands for someone who knows it and stays invisible to someone who doesn't.
+
+**3. The swap test.** Name a different brief this piece would serve just as well. If one comes
+easily, the piece is generic. Then go through each prominent choice (palette, typeface and weight,
+layout, density, texture, where the text sits) and mark it *from this brief* or *a default*.
+Defaults arrive unbidden: thin sans type, a centred composition in generous empty margins, a muted
+limited palette, clinical labels and numbered reference markers, monospace captions, sepia and
+archival ageing. A default is fine when the philosophy chose it for a reason you can point to.
+Otherwise replace it with the choice this brief implies.
+
+**4. Craft on the piece's own terms.** Judge against what the philosophy ruled out, not against
+general taste. Name the strongest element and the weakest. The piece should resolve into one object
+from across a room and reward standing close.
+
+**Route each finding to where it started.** A missed or misread intent goes back to the reference,
+the philosophy, or the material; fixing it in polish produces a well-finished version of the wrong
+piece. An unchosen default goes back to the decision that should have replaced it. Only craft
+findings go to the polish pass, and that pass keeps every brief-specific choice this critique
+identified: refining must not sand them back toward the defaults.
+
+When the piece ships, tell the user briefly what it does for their brief and what the critique
+changed.
 
 ---
 
