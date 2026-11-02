@@ -234,7 +234,10 @@ arrives through the material itself rather than through anything drawn.
 
 Find the specific, slightly obscure thread running under the brief and commit to it. Not the
 stated topic, and not an illustration of it — the thing adjacent to it that someone who knows the
-territory would recognise on sight and never need explained.
+territory would recognise on sight and never need explained. Research the territory rather than
+recalling it: what arrives from memory is the famous version, the one everyone already knows. Get
+the specifics right, since the people who would recognise the thread are the ones who would notice
+a mistake in it.
 
 **The test is asymmetry.** Someone who knows the reference should feel it land. Everyone else
 should see a composition that works completely on its own terms and never notice anything was
@@ -486,7 +489,8 @@ makes a piece look like it says it.
 - Every explicit ask is present: the words, the format, the use (a wall, a feed, a print at a size).
 - The blind read and the brief describe the same piece. Where they diverge, the piece is wrong, not
   the reader.
-- The subtle reference lands for someone who knows it and stays invisible to someone who doesn't.
+- The subtle reference lands for someone who knows it and stays invisible to someone who doesn't,
+  and whatever it borrows from the subject is accurate.
 
 **3. The swap test.** Name a different brief this piece would serve just as well. If one comes
 easily, the piece is generic. Then go through each prominent choice (palette, typeface and weight,
@@ -527,4 +531,15 @@ here.) Ask what would make the present material read as a single made object —
 - **Light** — a shadow falling the wrong way. Every shadow answers to one lamp.
 - **Edge** — a tear reading as an effect rather than as paper; recut with a different seed.
 
-Adjust the build script, re-render, re-run the self-check.
+**Find them close up.** These faults hide at full-sheet size. Render at 2–3× and go over it tile by
+tile, plus a whole crop of anything a tile seam cuts through:
+
+```bash
+rsvg-convert -z 3 piece.svg -o close.png && magick close.png -crop 3x3@ +repage close_%d.png
+```
+
+Look for the four above, and for a fringe or halo on a knockout, a seam that announces itself, a
+fragment enlarged past its resolution. Name what you found in each tile; "looks fine" means you
+didn't look.
+
+Adjust the build script, re-render, re-run the self-check and the close read.
