@@ -54,6 +54,11 @@ era** you want it drawn from. Worth mentioning **what the piece is for** - a boo
 cover, something you'll sell - because that decides which licences are acceptable, and it's easier
 to settle before sourcing than after.
 
+**It will stop once to ask you a question.** Before anything is sourced, it proposes three
+directions, each crossing a collage tradition with an unexpected outside format ("décollage tide
+table", "scrap album ship's log"), and you pick one, combine two, or ask for more. That pairing
+is where the piece gets its novelty. Name a style in your brief and it skips the question.
+
 To use your own images, point at a folder: *"…use the scans in `~/Pictures/grandad-slides`."*
 They can be mixed freely with sourced material.
 
@@ -86,8 +91,8 @@ one pool feeds every piece in the set.
 | | |
 |---|---|
 | `<piece>.svg` / `.png` | The artwork: self-contained SVG, and the shipping render |
-| `brief.md` | The original request, verbatim — what the critique checks the finished piece against |
-| `philosophy.md` | The aesthetic movement invented for the piece — its register, edges, palette, and what reconciles the sources |
+| `brief.md` | The original request, verbatim, sorted into content, style and avoid lists, with the direction you picked — what the critique checks the finished piece against |
+| `philosophy.md` | The aesthetic movement invented for the piece — its two parents, its register, edges, palette, and what reconciles the sources |
 | `attributions.md` | Every asset with URL, creator and licence, and what those licences mean for reusing the result |
 | `sources/` | Original downloads, unmodified |
 | `build_*.py` | Parametric build script, so the piece can be edited rather than remade |

@@ -12,7 +12,7 @@ open licences only.
 The deliverables are `brief.md`, `philosophy.md`, `attributions.md`, a self-contained `.svg`, its `.png`
 render, and the build script that made them.
 
-Four movements:
+First **choose the graft** with the user (three proposals, one pick), then four movements:
 1. **Collage philosophy** (`philosophy.md`)
 2. **Deduce the subtle reference**
 3. **Source the material** (open-licensed or user-supplied → `sources/` + `attributions.md`)
@@ -21,8 +21,11 @@ Four movements:
 ### BEFORE STARTING
 
 - **Save the brief verbatim** to `brief.md`: the user's words and anything they pointed to.
-  Movement 1 writes the philosophy without the commission on purpose; this file is what the
-  critique before the polish pass checks the piece against.
+  Below it, sort the request into three short lists: **content** (every word and fact the piece
+  must carry: title, date, venue, line-up), **style direction**, and **avoid** (exclusions the
+  user stated). Leave a list empty rather than inventing for it. Movement 1 writes the
+  philosophy without the commission on purpose; this file is what the critique before the polish
+  pass checks the piece against.
 - **Real imagery is mandatory** — either downloaded from the open web (needs `WebSearch`/`WebFetch`
   or browser tools) or taken from a folder the user points you at. With neither available, say so
   and stop; never substitute generated or invented imagery.
@@ -36,7 +39,8 @@ Four movements:
   tools, use them and meet the same bar.
 - **This is a long job** — if the user wants something quick, tell them before Movement 1. A
   multi-piece **series** costs far less than N× a single piece: sourcing dominates the budget, and
-  one source pool feeds every piece in the set.
+  one source pool feeds every piece in the set. In a series, every piece takes its words from
+  `brief.md` alone. A tagline invented for one piece must not quietly turn up in the next.
 
 ---
 
@@ -90,6 +94,42 @@ against it. Unnamed, the default stands.
 
 ---
 
+## CHOOSE THE GRAFT
+
+The aim is a piece that looks made and that nobody has quite seen before. A collage tradition
+supplies the first: it comes with a way of cutting, a way of stacking and a craft bar. But a
+tradition alone is a pastiche. Novelty comes from **crossing one collage lineage with one
+vernacular from outside art**: the lineage decides the cut and the finish, and the vernacular
+decides the system, and often supplies the material as well. `references/registers.md` lists both
+and explains how to pair them. Read it now.
+
+**1. Name the default.** In your working notes (not a deliverable), describe in a few lines the
+collage this brief gets if nobody decides. That covers two things: the genre template for this
+kind of commission, and this skill's own pull (sepia archival ageing, the Western institutional
+archive, specimen plates and documents, a muted clamped palette). That is the starting point to
+move away from. Any part of it can still be chosen later, for a stated reason.
+
+**2. Propose three grafts**, each one lineage × one vernacular. Keep them far from the default and
+from each other: no shared parent, and at least one should be loud. Give each in a single line:
+
+> **Décollage tide table** — torn layers of harbour posters over NOAA tide columns; the dates
+> live in the table; material: NOAA tables (PD) plus poster photography on Commons.
+
+That is the graft phrase, what the vernacular's system carries from the brief, and where the
+material would come from. The last part is what makes this collage-specific. A graft whose
+material doesn't exist under an open licence is a dead end, so do a search or two per graft to
+check before proposing it rather than after the user has chosen it.
+
+**3. Stop and let the user pick.** They choose one, cross two, or send you back for three more.
+If the intended use is still unknown (see licence compatibility, Movement 3), ask it in the same
+message, so the user is only stopped once. Add the chosen graft to `brief.md`; it is part of the
+commission now.
+
+Skip this step only when the brief already names the style, or the user says to just go. In that
+case choose the graft yourself and give the reason in the philosophy.
+
+---
+
 ## MOVEMENT 1 — COLLAGE PHILOSOPHY CREATION
 
 Write a **collage philosophy** — an aesthetic movement, not a layout or template. Its subject is
@@ -122,13 +162,20 @@ the specimen plate are each right sometimes: choose one deliberately, say why, a
 Avoiding whatever this list mentions is the same failure as defaulting to it — and worse in one
 way, because an avoidance written into `philosophy.md` binds every movement after it.
 
-Name the movement in 1–2 words once you know where it stands. If the name would sit comfortably
-next to a name you have produced before, you have probably defaulted rather than decided.
+The chosen graft already pulls some axes in a direction. Still state each one: a parent can fix
+the period and leave the colour or the origin open.
+
+Name the movement in 1–2 words, after the cross rather than after either parent. If the name
+would sit comfortably next to a name you have produced before, you have probably defaulted
+rather than decided.
 
 ### THE SIX DIMENSIONS
 
 **Articulate the philosophy** as one substantial paragraph per dimension below, under a short
-opening that says what the movement is. Collage has its own load-bearing dimensions — the
+opening that says what the movement is and gives its **parentage**: what it takes from the
+lineage, what it takes from the vernacular (its system, its material, or both), what it refuses
+from each, and which parent wins where they conflict. Get the parents' facts right, and look
+them up rather than recalling them. Collage has its own load-bearing dimensions — the
 material's origin and its treatment, not just form and colour. Cover each **once**, without
 redundancy:
 
@@ -183,7 +230,8 @@ redundancy:
   stopped being visual and started being a caption. Poster **furniture** is a
   different thing and usually wanted — dates, venue, a billing block, an edition number, a
   printer's imprint — small structured text, and often what makes a poster read as a poster rather
-  than an image with a word on it.
+  than an image with a word on it. The best place for it is inside the vernacular's system: the
+  date in the tide column, the line-up in the symbol key.
 
 **Three things the philosophy has to get right:**
 
@@ -499,6 +547,12 @@ Defaults arrive unbidden: thin sans type, a centred composition in generous empt
 limited palette, clinical labels and numbered reference markers, monospace captions, sepia and
 archival ageing. A default is fine when the philosophy chose it for a reason you can point to.
 Otherwise replace it with the choice this brief implies.
+
+**Then the novelty check.** Name the existing style this piece belongs to, in one phrase. If a
+single known look comes to mind immediately ("a Dada photomontage", "a Victorian scrapbook"), the
+vernacular didn't land and the piece is a pastiche of its lineage: push the vernacular's system
+further into the structure, or its material further into the pool. If nobody could name either
+parent, the lineage's signature has gone missing, and the craft bar usually went with it.
 
 **4. Craft on the piece's own terms.** Judge against what the philosophy ruled out, not against
 general taste. Name the strongest element and the weakest. The piece should resolve into one object
